@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block sayfa_basligi %}Kasa — {{ dukkan }}{% endblock %}
+{% block baslik %}Kasa Defteri{% endblock %}
+{% block ust %}Tahsilatlar ve peşin satışlar otomatik gelir yazar{% endblock %}
+
+{% block icerik %}
+
+<div class="kpi-izgara">
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone yesil"><svg class="ic"><use href="#i-kart"/></svg></span>
+      Giren (TL)
+    </div>
+    <div class="deger">{{ r.giren | tl }}</div>
+    <div class="alt">seçilen aralıkta</div>
+  </div>
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone kirmizi"><svg class="ic"><use href="#i-para"/></svg></span>
+      Çıkan (TL)
+    </div>
+    <div class="deger" style="color:var(--hata)">{{ r.cikan | tl }}</div>
+    <div class="alt">seçilen aralıkta</div>
+  </div>
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone"><svg class="ic"><use href="#i-grafik"/></svg></span>
+      Net (Aralık)
+    </div>
+    <div class="deger" style="color:{{ 'var(--ok)' if r.net >= 0 else 'var(--hata)' }}">
+      {{ r.net | tl }}
+    </div>
+    <div class="alt">giren − çıkan</div>
+  </div>
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone"><svg class="ic"><use href="#i-saat"/></svg></span>
+      Kasa Bakiyesi
+    </div>
+    <div class="deger altin-renk">{{ r.bakiye | tl }}</div>
+    <div class="alt">aralık sonundaki güncel bakiye</div>
+  </div>
+</div>
+
+<details class="acilir yazdirma-gizle">
+  <summary><svg class="ic"><use href="#i-ekle"/></svg> Manuel Gelir / Gider Ekle</summary>
+  <div class="acilir-icerik">
+    <form method="post" action="{{ url_for('views.kasa_ekle') }}">
+      <div class="form-izgara">
+        <div class="alan"><label>Tür</label>
+          <select name="tur">
+            <option value="gelir">Gelir</option>
+            <option value="gider">Gider</option>
+          </select></div>
+        <div class="alan"><label>Tutar (₺) *</label>
+          <input name="tutar" inputmode="decimal" required></div>
+        <div class="alan"><label>Tarih</label>
+          <input type="date" name="tarih" data-bugun value="{{ bugun_tarih }}"></div>
+        <div class="alan"><label>Kategori</label>
+          <input name="kategori" placeholder="örn. kira, elektrik, masraf"></div>
+        <div class="alan genis"><label>Açıklama</label>
+          <input name="aciklama"></div>
+      </div>
+      <div style="margin-top:16px">
+        <button class="buton altin" type="submit">Kasaya İşle</button>
+      </div>
+    </form>
+  </div>
+</details>
+
+<div class="kart">
+  <form class="filtre yazdirma-gizle" method="get">
+    <div class="alan"><label>Başlangıç</label>
+      <input type="date" name="baslangic" value="{{ filtreler.baslangic }}"></div>
+    <div class="alan"><label>Bitiş</label>
+      <input type="date" name="bitis" value="{{ filtreler.bitis }}"></div>
+    <button class="buton" type="submit">Uygula</button>
+    <a class="buton sade" href="{{ url_for('views.kasa_sayfasi') }}">Temizle</a>
+    <a class="buton yesil" style="margin-left:auto"
+       href="{{ url_for('views.rapor_csv', hangi='tahsilatlar', baslangic=filtreler.baslangic, bitis=filtreler.bitis) }}">
+      <svg class="ic"><use href="#i-indir"/></svg> Tahsilat CSV
+    </a>
+  </form>
+
+  <div class="kart-govde sirifiz">
+    {% if r.satirlar %}
+    <div class="tablo-kaydir">
+      <table class="tablo">
+        <thead>
+          <tr>
+            <th>Tarih</th>
+            <th>Kaynak</th>
+            <th>Açıklama</th>
+            <th class="sag">Giren</th>
+            <th class="sag">Çıkan</th>
+            <th class="sag">Bakiye</th>
+            <th class="yazdirma-gizle"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for k in r.satirlar %}
+          <tr>
+            <td style="white-space:nowrap">{{ k.tarih | tarih }}</td>
+            <td>
+              {% if k.kaynak == 'tahsilat' %}<span class="rozet tl">veresiye tahsilatı</span>
+              {% elif k.kaynak == 'pesin' %}<span class="rozet altin">peşin satış</span>
+              {% else %}<span class="rozet nobet">manuel</span>{% endif %}
+              <div class="ince">{{ k.kategori }}</div>
+            </td>
+            <td>{{ k.aciklama or '—' }}</td>
+            <td class="sag" style="color:var(--ok)">
+              {% if k.tur == 'gelir' %}{{ k.tutar | tl }}{% else %}—{% endif %}
+            </td>
+            <td class="sag" style="color:var(--hata)">
+              {% if k.tur == 'gider' %}{{ k.tutar | tl }}{% else %}—{% endif %}
+            </td>
+            <td class="sag"><b>{{ k.bakiye | tl }}</b></td>
+            <td class="sag yazdirma-gizle">
+              {% if k.kaynak == 'manuel' %}
+              <form method="post" style="display:inline;margin:0"
+                    action="{{ url_for('views.kasa_iptal', kid=k.id) }}"
+                    data-sebep data-sebep-metin="Kasa kaydı iptal sebebi:">
+                <button class="buton kucuk kirmizi" type="submit">İptal</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="bos">
+      <svg class="ic"><use href="#i-para"/></svg>
+      <div>Seçilen aralıkta kasa hareketi yok.</div>
+    </div>
+    {% endif %}
+
+    {% if r.iptaller %}
+    <div style="padding:16px 20px;border-top:1px solid var(--cizgi)">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.1em;
+                  color:var(--soluk-2);margin-bottom:10px">
+        İptal edilmiş manuel kayıtlar (silinmedi)
+      </div>
+      {% for i in r.iptaller %}
+      <div class="bilgi-satiri">
+        <span>{{ i.tarih | tarih }} · {{ i.tur }} · {{ i.aciklama or i.kategori or '—' }}
+          · sebep: {{ i.iptal_sebebi or '—' }}</span>
+        <b style="text-decoration:line-through">{{ i.tutar | tl }}</b>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

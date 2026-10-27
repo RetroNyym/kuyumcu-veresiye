@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+{% block sayfa_basligi %}{{ e.musteri.ad }} — Veresiye{% endblock %}
+{% block baslik %}{{ e.musteri.ad }}{% endblock %}
+{% block ust %}
+  <a href="{{ url_for('views.musteriler_sayfasi') }}" style="color:var(--soluk)">← Müşteriler</a>
+{% endblock %}
+{% block sag_ust %}
+  <button class="buton kucuk" data-yazdir type="button">
+    <svg class="ic" style="width:15px;height:15px"><use href="#i-yazdir"/></svg> Ekstre Yazdır
+  </button>
+{% endblock %}
+
+{% block icerik %}
+
+{% if m.gecikme_gun > 0 %}
+<div class="uyari-band">
+  <svg class="ic"><use href="#i-uyari"/></svg>
+  Ödemesi {{ m.gecikme_gun }} gün gecikmiş — en eski vade {{ m.en_eski_vade | tarih }}.
+</div>
+{% endif %}
+
+{# --------------------------------------------------------------- başlık #}
+<div class="kart" style="margin-bottom:16px">
+  <div class="musteri-bas">
+    <div class="avatar">{{ m.ad[0] | upper }}</div>
+    <div>
+      <h2>{{ m.ad }}
+        {% if m.kategori %}<span class="rozet altin">{{ m.kategori }}</span>{% endif %}
+      </h2>
+      <div class="alt">
+        {% if m.telefon %}<svg class="ic" style="width:13px;height:13px;vertical-align:-2px"><use href="#i-telefon"/></svg> {{ m.telefon }} · {% endif %}
+        {{ m.adres or 'Adres girilmedi' }}
+        · Kayıt: {{ m.olusturma | saat }}
+        {% if m.guncelleme %} · Son güncelleme: {{ m.guncelleme | saat }}{% endif %}
+      </div>
+      {% if m.notlar %}<div class="alt" style="color:var(--soluk)">Not: {{ m.notlar }}</div>{% endif %}
+      {% if m.sozu_tarih %}
+      <div class="alt" style="color:var(--uyari)">
+        Ödeme sözü: {{ m.sozu_tarih | tarih }}{% if m.sozu_not %} — {{ m.sozu_not }}{% endif %}
+      </div>
+      {% endif %}
+    </div>
+    <div class="sag yazdirma-gizle">
+      {% if m.telefon %}
+      <a class="buton kucuk" href="tel:{{ m.telefon | replace(' ', '') }}">
+        <svg class="ic" style="width:14px;height:14px"><use href="#i-telefon"/></svg> Ara
+      </a>
+      <a class="buton kucuk yesil" target="_blank" rel="noopener"
+         href="https://wa.me/90{{ m.telefon | replace(' ', '') | replace('(', '') | replace(')', '') | replace('-', '') }}?text="
+         title="WhatsApp'ta aç — mesajı borç özetiyle doldurmak için Hatırlat formunu kullanın">
+        WhatsApp
+      </a>
+      {% endif %}
+      <a class="buton" href="{{ url_for('views.ekstre', mid=m.id) }}">
+        <svg class="ic"><use href="#i-belge"/></svg> Temiz Ekstre
+      </a>
+    </div>
+  </div>
+</div>
+
+{% if m.telefon and m.borclu %}
+<div class="ipucu-band altin-band yazdirma-gizle">
+  <svg class="ic"><use href="#i-bag"/></svg>
+  <div>
+    Hatırlatma mesajı (kopyalayıp WhatsApp'ta gönderin):
+    <b>Sayın {{ m.ad }}, {{ dukkan }} Borcunuz:
+    {{ m.tl_borc | tl }}{% if m.altin_borc > 0.0005 %} + {{ m.altin_borc | gr }} altın{% endif %}.
+    {% if m.sozu_tarih %}Ödeme sözü tarihi: {{ m.sozu_tarih | tarih }}.{% endif %}
+    Teşekkürler.</b>
+  </div>
+</div>
+{% endif %}
+
+{# ------------------------------------------------------------- bakiyeler #}
+<div class="bakiye-kutulari" style="margin-bottom:16px">
+  <div class="bakiye {{ 'tl' if m.tl_borc > 0.004 else 'avans' }}">
+    <div class="etiket">TL Borcu</div>
+    <div class="deger">{{ m.tl_borc | tl }}</div>
+    <div class="alt">{% if m.tl_borc < -0.004 %}Avans (fazla ödeme){% else %}Kasaya göre{% endif %}</div>
+  </div>
+  <div class="bakiye {{ 'altin' if m.altin_borc > 0.0005 else 'avans' }}">
+    <div class="etiket">Altın Borcu</div>
+    <div class="deger">{{ m.altin_borc | gr }}</div>
+    <div class="alt">Güncel fiyatla ≈ {{ (m.altin_borc * gram_simdi) | tl }}</div>
+  </div>
+  <div class="bakiye">
+    <div class="etiket">Toplam (TL Eşdeğeri)</div>
+    <div class="deger" style="color:var(--altin-2)">{{ (m.tl_borc + m.altin_borc * gram_simdi) | tl }}</div>
+    <div class="alt">Gram fiyat {{ gram_simdi | tl }} ile</div>
+  </div>
+  <div class="bakiye">
+    <div class="etiket">Vade Durumu</div>
+    <div class="deger" style="font-size:19px">
+      {% if m.gecikme_gun > 0 %}
+        <span style="color:var(--hata)">{{ m.gecikme_gun }} gün gecikme</span>
+      {% elif m.en_eski_vade and m.borclu %}
+        {{ m.en_eski_vade | tarih }}
+      {% elif m.borclu %}
+        Vadesiz
+      {% else %}
+        <span style="color:var(--ok)">Borcu yok</span>
+      {% endif %}
+    </div>
+    <div class="alt">{% if m.limit_tl > 0 %}Limit: {{ m.limit_tl | tl }}{% else %}Limit yok{% endif %}</div>
+  </div>
+</div>
+
+{# -------------------------------------------------------- hızlı işlemler #}
+<div class="izgara-2 yazdirma-gizle">
+  <details class="acilir" {% if request.args.get('satis') == '1' or not m.borclu %}open{% endif %}>
+    <summary><svg class="ic"><use href="#i-bag"/></svg> Yeni Veresiye Satışı</summary>
+    <div class="acilir-icerik">
+      <form method="post" action="{{ url_for('views.satis_ekle') }}">
+        <input type="hidden" name="musteri_id" value="{{ m.id }}">
+        <input type="hidden" name="geri" value="{{ url_for('views.musteri_detay', mid=m.id) }}">
+        <div class="form-izgara">
+          <div class="alan">
+            <label>Para Birimi</label>
+            <select name="pb">
+              <option value="tl">₺ Türk Lirası</option>
+              <option value="altin">Gram Altın</option>
+            </select>
+          </div>
+          <div class="alan">
+            <label>Tutar * <span class="ipucu">(TL veya gram)</span></label>
+            <input name="tutar" inputmode="decimal" placeholder="örn. 2.500 veya 1,5" required>
+          </div>
+          <div class="alan">
+            <label>Satış Tarihi</label>
+            <input type="date" name="tarih" data-bugun value="{{ bugun_tarih }}">
+          </div>
+          <div class="alan">
+            <label>Vade Tarihi <span class="ipucu">(boş = vadesiz)</span></label>
+            <input type="date" name="vade">
+          </div>
+          <div class="alan genis">
+            <label>Açıklama <span class="ipucu">(ürün, adet, ayar…)</span></label>
+            <input name="aciklama" placeholder="örn. 22 ayar bilezik 8 gr">
+          </div>
+        </div>
+        <div style="margin-top:14px">
+          <button class="buton altin" type="submit">
+            <svg class="ic"><use href="#i-ekle"/></svg> Veresiye Satışını Kaydet
+          </button>
+        </div>
+      </form>
+    </div>
+  </details>
+
+  <details class="acilir" {% if request.args.get('tahsilat') == '1' %}open{% endif %}>
+    <summary><svg class="ic" style="color:var(--ok)"><use href="#i-kart"/></svg> Tahsilat Al</summary>
+    <div class="acilir-icerik">
+      <form method="post" action="{{ url_for('views.odeme_ekle') }}" data-cevir-ozet>
+        <input type="hidden" name="musteri_id" value="{{ m.id }}">
+        <input type="hidden" name="geri" value="{{ url_for('views.musteri_detay', mid=m.id) }}">
+        <div class="form-izgara">
+          <div class="alan">
+            <label>Ödenen Tutar *</label>
+            <input name="tutar" inputmode="decimal" placeholder="örn. 5.000 veya 2" required>
+          </div>
+          <div class="alan">
+            <label>Ödemenin Birimi</label>
+            <select name="pb">
+              <option value="tl">₺ Türk Lirası</option>
+              <option value="altin">Gram Altın</option>
+            </select>
+          </div>
+          <div class="alan">
+            <label>Hangi Borca Uygulansın</label>
+            <select name="hedef">
+              <option value="tl">TL Borcu</option>
+              <option value="altin">Altın Borcu</option>
+            </select>
+          </div>
+          <div class="alan">
+            <label>Ödeme Tarihi</label>
+            <input type="date" name="tarih" data-bugun value="{{ bugun_tarih }}">
+          </div>
+          <div class="alan">
+            <label>Çevrim Gram Fiyatı <span class="ipucu">(farklı birimse)</span></label>
+            <input name="kur" inputmode="decimal" value="{{ gram_simdi }}">
+          </div>
+          <div class="alan">
+            <label>Yöntem</label>
+            <select name="yontem">
+              <option value="nakit">Nakit</option>
+              <option value="kart">Kredi Kartı</option>
+              <option value="havale">Havale / EFT</option>
+              <option value="altin">İle Altın</option>
+            </select>
+          </div>
+          <div class="alan genis">
+            <label>Açıklama</label>
+            <input name="aciklama" placeholder="örn. 3. taksit">
+          </div>
+        </div>
+        <div class="ozet-kutu" style="margin-top:14px" data-cevir-sonuc>
+          Ödemeyi yazın — uygulanacak borç miktarı burada görünecek.
+        </div>
+        <div style="margin-top:14px">
+          <button class="buton yesil" type="submit">
+            <svg class="ic"><use href="#i-tik"/></svg> Tahsilatı Kaydet
+          </button>
+        </div>
+      </form>
+    </div>
+  </details>
+</div>
+
+{# ---------------------------------------------------------------- ekstre #}
+<div class="kart">
+  <div class="kart-baslik">
+    <svg class="ic" style="color:var(--altin-2)"><use href="#i-belge"/></svg>
+    <h2>Hesap Ekstresi</h2>
+    <div class="sag">
+      <span class="rozet nobet">{{ e.satirlar | length }} hareket</span>
+      <button class="buton kucuk" data-yazdir type="button" style="margin-left:8px">
+        <svg class="ic" style="width:14px;height:14px"><use href="#i-yazdir"/></svg> Yazdır
+      </button>
+    </div>
+  </div>
+  <div class="kart-govde sirifiz">
+    {% if e.satirlar %}
+    <div class="tablo-kaydir">
+      <table class="tablo">
+        <thead>
+          <tr>
+            <th>Tarih</th>
+            <th>İşlem</th>
+            <th class="sag">Borç</th>
+            <th class="sag">Tahsilat</th>
+            <th class="sag">TL Bakiye</th>
+            <th class="sag">Altın Bakiye</th>
+            <th class="yazdirma-gizle"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in e.satirlar %}
+          <tr>
+            <td style="white-space:nowrap">
+              {{ r.tarih | tarih }}
+              {% if r.vade %}<div class="ince">vade {{ r.vade | tarih }}</div>{% endif %}
+            </td>
+            <td>
+              {% if r.tur == 'satis' %}
+                <span class="rozet hata">Veresiye</span>
+              {% else %}
+                <span class="rozet ok">Tahsilat</span>
+              {% endif %}
+              <div class="ince">
+                {{ r.aciklama or (r.tur == 'satis' and 'Açıklama yok' or 'Ödeme') }}
+                {% if r.para_birimi == 'altin' and r.tur == 'satis' and r.gram_fiyat %}
+                  · fiyat {{ r.gram_fiyat | tl }}/gr
+                {% endif %}
+              </div>
+            </td>
+            <td class="sag" style="color:var(--hata)">
+              {% if r.borc > 0 %}
+                {% if r.para_birimi == 'tl' %}{{ r.borc | tl }}{% else %}{{ r.borc | gr }}{% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td class="sag" style="color:var(--ok)">
+              {% if r.tahsilat > 0 %}
+                {% if r.para_birimi == 'tl' %}{{ r.tahsilat | tl }}{% else %}{{ r.tahsilat | gr }}{% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td class="sag">{{ r.tl_bakiye | tl }}</td>
+            <td class="sag">{{ r.altin_bakiye | gr }}</td>
+            <td class="sag yazdirma-gizle">
+              {% if r.tur == 'satis' %}
+              <form method="post" style="display:inline;margin:0"
+                    action="{{ url_for('views.satis_iptal', sid=r.id) }}"
+                    data-sebep data-sebep-metin="Satış iptal sebebi:">
+                <button class="buton kucuk kirmizi" type="submit">İptal</button>
+              </form>
+              {% else %}
+              <form method="post" style="display:inline;margin:0"
+                    action="{{ url_for('views.odeme_iptal', oid=r.id) }}"
+                    data-sebep data-sebep-metin="Tahsilat iptal sebebi:">
+                <button class="buton kucuk kirmizi" type="submit">İptal</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="bos">
+      <svg class="ic"><use href="#i-belge"/></svg>
+      <div>Bu müşterinin henüz hareketi yok. İlk veresiye satışını ekleyin.</div>
+    </div>
+    {% endif %}
+
+    {% if e.iptaller %}
+    <div style="padding:16px 20px;border-top:1px solid var(--cizgi)">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.1em;
+                  color:var(--soluk-2);margin-bottom:10px">
+        İptal edilmiş kayıtlar (silinmedi, arşivde duruyor)
+      </div>
+      {% for i in e.iptaller %}
+      <div class="bilgi-satiri">
+        <span>
+          {% if i.tur == 'satis' %}Veresiye satışı{% else %}Tahsilat{% endif %}
+          · {{ i.tarih | tarih }} · sebep: {{ i.iptal_sebebi or '—' }}
+        </span>
+        <b style="text-decoration:line-through">
+          {% if i.para_birimi == 'tl' %}{{ i.tutar | tl }}{% else %}{{ i.tutar | gr }}{% endif %}
+        </b>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ------------------------------------------------------- düzenleme / arşiv #}
+<details class="acilir yazdirma-gizle" style="margin-top:16px">
+  <summary><svg class="ic"><use href="#i-cark"/></svg> Müşteri Bilgilerini Düzenle</summary>
+  <div class="acilir-icerik">
+    <form method="post" action="{{ url_for('views.musteri_duzenle', mid=m.id) }}">
+      <input type="hidden" name="geri" value="{{ url_for('views.musteri_detay', mid=m.id) }}">
+      <div class="form-izgara">
+        <div class="alan"><label>Ad Soyad *</label>
+          <input name="ad" value="{{ m.ad }}" required></div>
+        <div class="alan"><label>Telefon</label>
+          <input name="telefon" value="{{ m.telefon }}"></div>
+        <div class="alan"><label>Kredi Limiti (TL)</label>
+          <input name="limit" inputmode="decimal" value="{{ '%g' % m.limit_tl }}"></div>
+        <div class="alan"><label>Kategori <span class="ipucu">(dükkan, market…)</span></label>
+          <input name="kategori" value="{{ m.kategori }}" placeholder="örn. dükkan"></div>
+        <div class="alan"><label>Ödeme Sözü Tarihi</label>
+          <input type="date" name="sozu_tarih" value="{{ m.sozu_tarih }}"></div>
+        <div class="alan genis"><label>Söz Notu <span class="ipucu">("15'inde ödeyecek"…)</span></label>
+          <input name="sozu_not" value="{{ m.sozu_not }}"></div>
+        <div class="alan genis"><label>Adres</label>
+          <input name="adres" value="{{ m.adres }}"></div>
+        <div class="alan genis"><label>Not</label>
+          <textarea name="notlar">{{ m.notlar }}</textarea></div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="buton altin" type="submit">Değişiklikleri Kaydet</button>
+      </div>
+    </form>
+
+    <div style="margin-top:22px;padding-top:18px;border-top:1px dashed var(--cizgi-2)">
+      {% if m.durum == 'aktif' %}
+      <form method="post" action="{{ url_for('views.musteri_durum', mid=m.id) }}"
+            data-onay="{{ m.ad }} arşivlensin mi? Kayıt silinmez, sadece listeden gizlenir.">
+        <input type="hidden" name="durum" value="arsiv">
+        <input type="hidden" name="geri" value="{{ url_for('views.musteriler_sayfasi') }}">
+        <button class="buton kirmizi" type="submit">
+          Müşteriyi Arşivle (asla silinmez)
+        </button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('views.musteri_durum', mid=m.id) }}">
+        <input type="hidden" name="durum" value="aktif">
+        <input type="hidden" name="geri" value="{{ url_for('views.musteri_detay', mid=m.id) }}">
+        <button class="buton yesil" type="submit">Arşivden Listeye Geri Al</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</details>
+
+{% endblock %}

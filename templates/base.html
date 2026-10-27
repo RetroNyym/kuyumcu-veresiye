@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d1117">
+  <title>{% block sayfa_basligi %}{{ dukkan }} — Veresiye{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+{# ---------------------------------------------------------------- ikonlar #}
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-bag" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></symbol>
+  <symbol id="i-kart" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2.5"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="5" y1="15.5" x2="9" y2="15.5"/></symbol>
+  <symbol id="i-grafik" viewBox="0 0 24 24"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="8"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="3" y1="20" x2="21" y2="20"/></symbol>
+  <symbol id="i-kalkan" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="8.5 12 11 14.5 15.5 10"/></symbol>
+  <symbol id="i-cark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="i-saat" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></symbol>
+  <symbol id="i-cikis" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></symbol>
+  <symbol id="i-ara" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></symbol>
+  <symbol id="i-ekle" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-yazdir" viewBox="0 0 24 24"><polyline points="6 9 6 2.5 18 2.5 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></symbol>
+  <symbol id="i-indir" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7.5 10.5 12 15 16.5 10.5"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+  <symbol id="i-yenile" viewBox="0 0 24 24"><polyline points="21 4 21 10 15 10"/><path d="M20.5 14a8.5 8.5 0 1 1-2-8.7L21 7"/></symbol>
+  <symbol id="i-uyari" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13.5"/><line x1="12" y1="17.5" x2="12.01" y2="17.5"/></symbol>
+  <symbol id="i-tik" viewBox="0 0 24 24"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"/><polyline points="22 4 12 14 9 11"/></symbol>
+  <symbol id="i-takvim" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="17" rx="2"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+  <symbol id="i-telefon" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></symbol>
+  <symbol id="i-para" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><line x1="6" y1="12" x2="6.01" y2="12"/><line x1="18" y1="12" x2="18.01" y2="12"/></symbol>
+  <symbol id="i-altin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><line x1="12" y1="7.5" x2="12" y2="16.5"/></symbol>
+  <symbol id="i-belge" viewBox="0 0 24 24"><path d="M14 2.5H6.5a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V8z"/><polyline points="14 2.5 14 8 19.5 8"/><line x1="16" y1="13.5" x2="9" y2="13.5"/><line x1="16" y1="17.5" x2="9" y2="17.5"/></symbol>
+  <symbol id="i-geri" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+</svg>
+
+<div class="app">
+
+  {# ============================================================== kenar çubuğu #}
+  <aside class="sidebar">
+    <div class="marka">
+      <div class="amblem">K</div>
+      <div>
+        <b>Kuyumcu</b>
+        <span>Veresiye Premium</span>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="baslik">Genel</div>
+      <a href="{{ url_for('views.panel') }}" class="{{ 'aktif' if sayfa == 'panel' }}">
+        <svg class="ic"><use href="#i-grid"/></svg> Panel
+      </a>
+      <a href="{{ url_for('views.musteriler_sayfasi') }}" class="{{ 'aktif' if sayfa == 'musteriler' }}">
+        <svg class="ic"><use href="#i-users"/></svg> Müşteriler
+      </a>
+      <a href="{{ url_for('views.satislar_sayfasi') }}" class="{{ 'aktif' if sayfa == 'satislar' }}">
+        <svg class="ic"><use href="#i-bag"/></svg> Veresiye Satışları
+      </a>
+      <a href="{{ url_for('views.tahsilatlar_sayfasi') }}" class="{{ 'aktif' if sayfa == 'tahsilatlar' }}">
+        <svg class="ic"><use href="#i-kart"/></svg> Tahsilatlar
+      </a>
+
+      <div class="baslik">Kasa & Defterler</div>
+      <a href="{{ url_for('views.kasa_sayfasi') }}" class="{{ 'aktif' if sayfa == 'kasa' }}">
+        <svg class="ic"><use href="#i-para"/></svg> Kasa Defteri
+      </a>
+      <a href="{{ url_for('views.cekler_sayfasi') }}" class="{{ 'aktif' if sayfa == 'cekler' }}">
+        <svg class="ic"><use href="#i-belge"/></svg> Çek &amp; Senet
+      </a>
+      <a href="{{ url_for('views.tedarikciler_sayfasi') }}" class="{{ 'aktif' if sayfa == 'tedarikciler' }}">
+        <svg class="ic"><use href="#i-users"/></svg> Tedarikçiler
+      </a>
+      <a href="{{ url_for('views.urunler_sayfasi') }}" class="{{ 'aktif' if sayfa == 'urunler' }}">
+        <svg class="ic"><use href="#i-altin"/></svg> Ürünler
+      </a>
+
+      <div class="baslik">Analiz</div>
+      <a href="{{ url_for('views.raporlar') }}" class="{{ 'aktif' if sayfa == 'raporlar' }}">
+        <svg class="ic"><use href="#i-grafik"/></svg> Raporlar
+      </a>
+      <a href="{{ url_for('views.islem_gecmisi') }}" class="{{ 'aktif' if sayfa == 'gecmis' }}">
+        <svg class="ic"><use href="#i-saat"/></svg> İşlem Geçmişi
+      </a>
+
+      <div class="baslik">Sistem</div>
+      <a href="{{ url_for('views.yedek_sayfasi') }}" class="{{ 'aktif' if sayfa == 'yedek' }}">
+        <svg class="ic"><use href="#i-kalkan"/></svg> Yedek &amp; Güvenlik
+        <span class="rozet-sayi">Otomatik</span>
+      </a>
+      <a href="{{ url_for('views.ayarlar') }}" class="{{ 'aktif' if sayfa == 'ayarlar' }}">
+        <svg class="ic"><use href="#i-cark"/></svg> Ayarlar
+      </a>
+    </nav>
+
+    <div class="alt-bilgi">
+      <div class="satir">
+        <span class="nokta {{ '' if yedek_durum.get('son_gunluk') else 'kapali' }}"></span>
+        Günlük yedek:
+        {% if yedek_durum.get('son_gunluk') %}
+          {{ yedek_durum['son_gunluk'] | tarih }}
+        {% else %}bekliyor{% endif %}
+      </div>
+      <div class="satir">
+        <span class="nokta {{ '' if yedek_durum.get('son_saatlik') else 'kapali' }}"></span>
+        Saatlik yedek:
+        {% if yedek_durum.get('son_saatlik') %}
+          {{ yedek_durum['son_saatlik'] | saat }}
+        {% else %}ilk dakikada alınacak{% endif %}
+      </div>
+      <div class="satir">Tablet erişimi:</div>
+      <code>http://{{ lan_ip }}:{{ port }}</code>
+    </div>
+  </aside>
+
+  {# =================================================================== gövde #}
+  <div class="main">
+    <header class="cubuk">
+      <button class="menu-tusu" data-menu aria-label="Menü">
+        <svg class="ic"><use href="#i-menu"/></svg>
+      </button>
+      <div>
+        <h1>{% block baslik %}Panel{% endblock %}</h1>
+        <div class="alt">{% block ust %}{{ dukkan }} · {{ bugun_tarih | tarih }}{% endblock %}</div>
+      </div>
+      <div class="sag">
+        {% block sag_ust %}
+        <span class="chip altin">
+          <svg class="ic" style="width:15px;height:15px"><use href="#i-altin"/></svg>
+          Gram <b>{{ gram_simdi | tl }}</b>
+        </span>
+        {% endblock %}
+        <form method="post" action="{{ url_for('views.cikis') }}" style="margin:0">
+          <button class="buton kucuk sade" type="submit" title="Oturumu kapat">
+            <svg class="ic" style="width:15px;height:15px"><use href="#i-cikis"/></svg> Çıkış
+          </button>
+        </form>
+      </div>
+    </header>
+
+    <main class="icerik">
+      {% with mesajlar = get_flashed_messages(with_categories=true) %}
+        {% if mesajlar %}
+          <div class="mesajlar">
+            {% for kategori, metin in mesajlar %}
+              <div class="mesaj {{ kategori }}">
+                <svg class="ic">
+                  <use href="#{{ 'i-tik' if kategori == 'basari' else ('i-uyari' if kategori in ('hata', 'uyari') else 'i-belge') }}"/>
+                </svg>
+                {{ metin }}
+                <button class="kapat" type="button" aria-label="Kapat">×</button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block icerik %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% block script %}{% endblock %}
+</body>
+</html>

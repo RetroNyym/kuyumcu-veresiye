@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block sayfa_basligi %}Müşteriler — {{ dukkan }}{% endblock %}
+{% block baslik %}Müşteriler{% endblock %}
+{% block ust %}{{ musteriler | length }} kayıt · veriler asla silinmez, arşivlenir{% endblock %}
+
+{% block icerik %}
+
+<details class="acilir" id="yeni" {% if not musteriler %}open{% endif %}>
+  <summary><svg class="ic"><use href="#i-ekle"/></svg> Yeni Müşteri Ekle</summary>
+  <div class="acilir-icerik">
+    <form method="post" action="{{ url_for('views.musteri_ekle') }}">
+      <input type="hidden" name="geri" value="{{ url_for('views.musteriler_sayfasi') }}">
+      <div class="form-izgara">
+        <div class="alan">
+          <label>Ad Soyad / Ünvan *</label>
+          <input name="ad" placeholder="örn. Ayşe Yılmaz" required autofocus>
+        </div>
+        <div class="alan">
+          <label>Telefon</label>
+          <input name="telefon" inputmode="tel" placeholder="05xx xxx xx xx">
+        </div>
+        <div class="alan">
+          <label>Kredi Limiti (TL) <span class="ipucu">0 = limitsiz</span></label>
+          <input name="limit" inputmode="decimal" placeholder="örn. 50.000">
+        </div>
+        <div class="alan">
+          <label>Kategori <span class="ipucu">(dükkan, market…)</span></label>
+          <input name="kategori" placeholder="örn. dükkan">
+        </div>
+        <div class="alan genis">
+          <label>Adres</label>
+          <input name="adres" placeholder="Mahalle / cadde no…">
+        </div>
+        <div class="alan genis">
+          <label>Not</label>
+          <textarea name="notlar" placeholder="Kefil, teminat, özel not…"></textarea>
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="buton altin" type="submit">
+          <svg class="ic"><use href="#i-tik"/></svg> Kaydet
+        </button>
+        <label class="hatirla" style="margin-left:6px">
+          <input type="checkbox" name="detay" value="1"> Kaydettikten sonra detay sayfasını aç
+        </label>
+      </div>
+    </form>
+  </div>
+</details>
+
+<div class="kart">
+  <div class="filtre yazdirma-gizle">
+    <div class="arama-kutu">
+      <svg class="ic"><use href="#i-ara"/></svg>
+      <input type="search" data-ara="#musteri-tablosu" placeholder="İsim, telefon ara…">
+    </div>
+    <div class="anahtar-kutu">
+      <a href="{{ url_for('views.musteriler_sayfasi', q=q) }}"
+         class="{{ 'aktif' if not borclu }}">Tümü</a>
+      <a href="{{ url_for('views.musteriler_sayfasi', q=q, borclu=1) }}"
+         class="{{ 'aktif' if borclu }}">Sadece Borçlular</a>
+    </div>
+    <div class="anahtar-kutu">
+      <a href="{{ url_for('views.musteriler_sayfasi', q=q, borclu=1 if borclu else none, durum='aktif') }}"
+         class="{{ 'aktif' if durum == 'aktif' }}">Aktif</a>
+      <a href="{{ url_for('views.musteriler_sayfasi', q=q, borclu=1 if borclu else none, durum='arsiv') }}"
+         class="{{ 'aktif' if durum == 'arsiv' }}">Arşiv</a>
+    </div>
+  </div>
+
+  <div class="kart-govde sirifiz">
+    {% if musteriler %}
+    <div class="tablo-kaydir">
+      <table class="tablo" id="musteri-tablosu">
+        <thead>
+          <tr>
+            <th>Müşteri</th>
+            <th>Telefon</th>
+            <th class="sag">TL Borç</th>
+            <th class="sag">Altın Borç</th>
+            <th class="sag">TL Eşdeğeri</th>
+            <th>Vade Durumu</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in musteriler %}
+          <tr data-ara-metin="{{ m.ad }} {{ m.telefon }}" class="{{ 'gecikmis' if m.gecikme_gun > 0 }}">
+            <td>
+              <a class="ad" href="{{ url_for('views.musteri_detay', mid=m.id) }}">{{ m.ad }}</a>
+              {% if m.kategori %}<span class="rozet nobet">{{ m.kategori }}</span>{% endif %}
+              {% if m.durum == 'arsiv' %}<span class="rozet nobet">arşiv</span>{% endif %}
+              {% if m.limit_tl > 0 and m.tl_borc > m.limit_tl %}
+                <span class="rozet uyari">limit aşıldı</span>
+              {% endif %}
+              {% if m.notlar %}<div class="ince">{{ m.notlar[:60] }}</div>{% endif %}
+            </td>
+            <td class="ince">{{ m.telefon or '—' }}</td>
+            <td class="sag" style="color:{{ 'var(--tl)' if m.tl_borc > 0.004 else 'var(--soluk-2)' }}">
+              {{ m.tl_borc | tl }}
+            </td>
+            <td class="sag" style="color:{{ 'var(--altin-2)' if m.altin_borc > 0.0005 else 'var(--soluk-2)' }}">
+              {{ m.altin_borc | gr }}
+            </td>
+            <td class="sag">
+              <b>{{ (m.tl_borc + m.altin_borc * gram_simdi) | tl }}</b>
+            </td>
+            <td>
+              {% if m.gecikme_gun > 0 %}
+                <span class="rozet hata">{{ m.gecikme_gun }} gün gecikme</span>
+                <div class="ince">vade {{ m.en_eski_vade | tarih }}</div>
+              {% elif m.borclu and m.en_eski_vade %}
+                <span class="rozet ok">vadesi {{ m.en_eski_vade | tarih }}</span>
+              {% elif m.borclu %}
+                <span class="rozet nobet">vadesiz borç</span>
+              {% else %}
+                <span class="rozet ok">borcu yok</span>
+              {% endif %}
+            </td>
+            <td class="sag">
+              <a class="buton kucuk" href="{{ url_for('views.musteri_detay', mid=m.id) }}">Detay →</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="bos">
+      <svg class="ic"><use href="#i-users"/></svg>
+      <div>
+        {% if q %}"{{ q }}" için kayıt bulunamadı.{% else %}Henüz müşteri yok — yukarıdan ilk müşterinizi ekleyin.{% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

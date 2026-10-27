@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Giriş — {{ dukkan }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="giris-sarma">
+  <div class="giris-kart">
+    <div class="amblem">K</div>
+    <h1>Kuyumcu Veresiye</h1>
+    <div class="alt-baslik">{{ dukkan }} · Premium</div>
+
+    {% with mesajlar = get_flashed_messages(with_categories=true) %}
+      {% for kategori, metin in mesajlar %}
+        <div class="mesaj {{ kategori }}" style="text-align:left;margin-bottom:14px">
+          {{ metin }}
+          <button class="kapat" type="button">×</button>
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="post">
+      <div class="alan">
+        <label>PIN Kodu</label>
+        <input type="password" name="pin" inputmode="numeric" autofocus
+               placeholder="••••" autocomplete="current-password" required>
+      </div>
+      <label class="hatirla">
+        <input type="checkbox" name="hatirla" value="1"> Bu cihazda 30 gün hatırla
+      </label>
+      <button class="buton altin tam" type="submit">Giriş Yap</button>
+    </form>
+
+    <div style="margin-top:20px;font-size:12px;color:var(--soluk-2);line-height:1.6">
+      Veriler bu bilgisayarda saklanır · Saatlik + günlük otomatik yedekleme açık
+    </div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

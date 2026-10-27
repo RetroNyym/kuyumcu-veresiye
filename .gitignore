@@ -1,0 +1,16 @@
+# Veritabanı ve gerçek veriler repoya girmez
+veresiye.db
+*.db
+yedekler/
+
+# Gizli anahtar (oturum şifresi)
+gizli_anahtar.txt
+
+# Python önbelleği
+__pycache__/
+*.pyc
+
+# PyInstaller çıktıları
+build/
+dist/
+*.spec.bak

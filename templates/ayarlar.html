@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block sayfa_basligi %}Ayarlar — {{ dukkan }}{% endblock %}
+{% block baslik %}Ayarlar{% endblock %}
+{% block ust %}Dükkân bilgileri, gram fiyat, PIN kilidi{% endblock %}
+
+{% block icerik %}
+
+<div class="ipucu-band">
+  <svg class="ic"><use href="#i-telefon"/></svg>
+  <div>
+    <b>Tablet erişimi:</b> Tablet bu bilgisayarla aynı Wi-Fi ağındaysa tarayıcısına
+    <b>http://{{ lan_ip }}:{{ port }}</b> adresini yazarak giriş yapabilir.
+    Güvenlik için aşağıdan <b>PIN kilidi</b> açmanız önerilir.
+  </div>
+</div>
+
+<div class="izgara-2">
+  {# ------------------------------------------------------- genel ayarlar #}
+  <div class="kart">
+    <div class="kart-baslik">
+      <svg class="ic" style="color:var(--altin-2)"><use href="#i-cark"/></svg>
+      <h2>Genel</h2>
+    </div>
+    <div class="kart-govde">
+      <form method="post" action="{{ url_for('views.ayarlar_kaydet') }}">
+        <div class="form-izgara">
+          <div class="alan">
+            <label>Dükkân Adı</label>
+            <input name="dukkan_adi" value="{{ dukkan }}" placeholder="örn. Elmas Kuyumculuk">
+          </div>
+          <div class="alan">
+            <label>Varsayılan Vade (gün) <span class="ipucu">referans</span></label>
+            <input name="vade_gun" inputmode="numeric" value="30">
+          </div>
+          <div class="alan">
+            <label>Bugünkü Gram Fiyat (₺)</label>
+            <input name="gram_fiyat" inputmode="decimal" value="{{ gram_simdi }}"
+                   placeholder="örn. 4.250,00">
+          </div>
+        </div>
+        <div style="margin-top:16px">
+          <button class="buton altin" type="submit">
+            <svg class="ic"><use href="#i-tik"/></svg> Kaydet
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ------------------------------------------------------------- PIN kilidi #}
+  <div class="kart">
+    <div class="kart-baslik">
+      <svg class="ic" style="color:var(--tl)"><use href="#i-kalkan"/></svg>
+      <h2>PIN Kilidi (Tablet Güvenliği)</h2>
+      <div class="sag">
+        {% if pin_var %}
+          <span class="rozet ok">açık</span>
+        {% else %}
+          <span class="rozet hata">kapalı</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="kart-govde">
+      <form method="post" action="{{ url_for('views.ayarlar_kaydet') }}">
+        <div class="form-izgara">
+          {% if pin_var %}
+          <div class="alan">
+            <label>Mevcut PIN</label>
+            <input type="password" name="mevcut_pin" inputmode="numeric"
+                   placeholder="••••" autocomplete="current-password">
+          </div>
+          {% endif %}
+          <div class="alan">
+            <label>{{ 'Yeni PIN' if pin_var else 'PIN Belirle' }} <span class="ipucu">(en az 4 hane)</span></label>
+            <input type="password" name="yeni_pin" inputmode="numeric" placeholder="••••"
+                   autocomplete="new-password">
+          </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="buton altin" type="submit">PIN'i Kaydet</button>
+          {% if pin_var %}
+          <label class="hatirla">
+            <input type="checkbox" name="pin_kaldir" value="1"> Kaldır
+          </label>
+          {% endif %}
+        </div>
+        <div class="ince" style="margin-top:12px;color:var(--soluk-2);font-size:13px">
+          PIN yalnızca bu programın girişinde sorulur. Veriler yine de şifreli değildir;
+          yedeklerinizi harici bir diske kopyalamanız önerilir.
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ------------------------------------------------------------ fiyat geçmişi #}
+<div class="kart" style="margin-top:16px">
+  <div class="kart-baslik">
+    <svg class="ic" style="color:var(--altin-2)"><use href="#i-altin"/></svg>
+    <h2>Gram Fiyat Geçmişi</h2>
+    <div class="sag ince" style="color:var(--soluk-2);font-size:13px">
+      Altın satışları ve TL↔altın dönüşümleri bu fiyatlarla hesaplanır
+    </div>
+  </div>
+  <div class="kart-govde sirifiz">
+    {% if fiyatlar %}
+    <div class="tablo-kaydir">
+      <table class="tablo">
+        <thead>
+          <tr>
+            <th>Tarih</th>
+            <th class="sag">Gram Fiyat</th>
+            <th>Kaynak</th>
+            <th>Kayıt Zamanı</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in fiyatlar %}
+          <tr>
+            <td class="ad">{{ f.tarih | tarih }}</td>
+            <td class="sag" style="color:var(--altin-2)">{{ f.gram_fiyat | tl }}/gr</td>
+            <td class="ince">{{ f.kaynak }}</td>
+            <td class="ince">{{ f.kayit_zamani | saat }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="bos">
+      <svg class="ic"><use href="#i-altin"/></svg>
+      <div>Henüz fiyat girilmedi — yukarıdan bugünkü gram fiyatı kaydedin.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ------------------------------------------------------------ veri güvenliği #}
+<div class="kart" style="margin-top:16px">
+  <div class="kart-baslik">
+    <svg class="ic" style="color:var(--ok)"><use href="#i-tik"/></svg>
+    <h2>Veri Güvence Kuralları</h2>
+  </div>
+  <div class="kart-govde">
+    <div class="bilgi-satiri"><span>Silme</span>
+      <b>Hiçbir kayıt silinmez — satış/ödeme iptal edilir, müşteri arşivlenir</b></div>
+    <div class="bilgi-satiri"><span>İşlem günlüğü</span>
+      <b>Her ekleme/iptal/change salt-ekleme tablosuna yazılır</b></div>
+    <div class="bilgi-satiri"><span>Otomatik yedek</span>
+      <b>Saatlik + günlük + aylık (otomatik)</b></div>
+    <div class="bilgi-satiri"><span>Geri yükleme öncesi</span>
+      <b>Mevcut veriler otomatik "on-yukleme" yedeğine kopyalanır</b></div>
+    <div class="bilgi-satiri"><span>Veritabanı</span>
+      <b style="font-family:monospace;font-size:12.5px">{{ 'veresiye.db (proje klasörü)' }}</b></div>
+  </div>
+</div>
+
+{% endblock %}

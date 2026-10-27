@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block sayfa_basligi %}Raporlar — {{ dukkan }}{% endblock %}
+{% block baslik %}Raporlar{% endblock %}
+{% block ust %}Aylık özet, en borçlular ve dışa aktarma{% endblock %}
+
+{% block icerik %}
+
+<div class="ipucu-band altin-band">
+  <svg class="ic"><use href="#i-altin"/></svg>
+  <div>
+    Tüm tutarlar güncel gram fiyat (<b>{{ gram | tl }}</b> / gr) ile TL eşdeğeri üzerinden
+    karşılaştırılır. CSV dosyaları Excel'de sorunsuz açılır (UTF-8).
+  </div>
+</div>
+
+{# ------------------------------------------------------ dışa aktarma kartı #}
+<div class="kart" style="margin-bottom:16px">
+  <div class="kart-baslik">
+    <svg class="ic" style="color:var(--ok)"><use href="#i-indir"/></svg>
+    <h2>Dışa Aktarma</h2>
+  </div>
+  <div class="kart-govde">
+    <form class="form-satir" method="get" action="{{ url_for('views.rapor_csv') }}">
+      <div class="alan"><label>Rapor</label>
+        <select name="hangi">
+          <option value="musteriler">Müşteriler + bakiyeler</option>
+          <option value="satislar">Veresiye satışları</option>
+          <option value="tahsilatlar">Tahsilatlar</option>
+        </select></div>
+      <div class="alan"><label>Başlangıç</label>
+        <input type="date" name="baslangic"></div>
+      <div class="alan"><label>Bitiş</label>
+        <input type="date" name="bitis"></div>
+      <button class="buton altin" type="submit">
+        <svg class="ic"><use href="#i-indir"/></svg> CSV İndir
+      </button>
+      <a class="buton" href="{{ url_for('views.yedek_json') }}">
+        <svg class="ic"><use href="#i-kalkan"/></svg> Tam JSON Yedeği
+      </a>
+    </form>
+  </div>
+</div>
+
+{# ------------------------------------------------------------- aylık özet #}
+<div class="kart" style="margin-bottom:16px">
+  <div class="kart-baslik">
+    <svg class="ic" style="color:var(--tl)"><use href="#i-grafik"/></svg>
+    <h2>Son 6 Ayın Özeti</h2>
+  </div>
+  <div class="kart-govde sirifiz">
+    <div class="tablo-kaydir">
+      <table class="tablo">
+        <thead>
+          <tr>
+            <th>Ay</th>
+            <th class="sag">Veresiye Satış (TL)</th>
+            <th class="sag">Veresiye Satış (Altın)</th>
+            <th class="sag">Peşin Satış (TL)</th>
+            <th class="sag">Tahsilat (TL)</th>
+            <th class="sag">Tahsilat (Altın)</th>
+            <th class="sag">Tahsilat Toplamı</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in aylar %}
+          <tr>
+            <td class="ad">{{ a.ay }}</td>
+            <td class="sag">{{ a.satis_tl | tl }}</td>
+            <td class="sag">{{ a.satis_gr | gr }}</td>
+            <td class="sag">{{ a.pesin_tl | tl }}</td>
+            <td class="sag">{{ a.tahsilat_tl | tl }}</td>
+            <td class="sag">{{ a.tahsilat_gr | gr }}</td>
+            <td class="sag" style="color:var(--ok)">
+              <b>{{ (a.tahsilat_tl + a.tahsilat_gr * gram) | tl }}</b>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# ------------------------------------------------------------ en borçlular #}
+<div class="kart">
+  <div class="kart-baslik">
+    <svg class="ic" style="color:var(--altin-2)"><use href="#i-users"/></svg>
+    <h2>En Çok Borçlu 15 Müşteri</h2>
+    <div class="sag">
+      <a class="buton kucuk sade" href="{{ url_for('views.rapor_csv', hangi='musteriler') }}">
+        CSV →
+      </a>
+    </div>
+  </div>
+  <div class="kart-govde sirifiz">
+    {% if borclular %}
+    <div class="tablo-kaydir">
+      <table class="tablo">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Müşteri</th>
+            <th class="sag">TL Borç</th>
+            <th class="sag">Altın Borç</th>
+            <th class="sag">Toplam (TL eşdeğeri)</th>
+            <th>Vade</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in borclular %}
+          <tr class="{{ 'gecikmis' if m.gecikme_gun > 0 }}">
+            <td class="ince">{{ loop.index }}</td>
+            <td>
+              <a class="ad" href="{{ url_for('views.musteri_detay', mid=m.id) }}">{{ m.ad }}</a>
+              {% if m.telefon %}<div class="ince">{{ m.telefon }}</div>{% endif %}
+            </td>
+            <td class="sag" style="color:var(--tl)">{{ m.tl_borc | tl }}</td>
+            <td class="sag" style="color:var(--altin-2)">{{ m.altin_borc | gr }}</td>
+            <td class="sag"><b>{{ (m.tl_borc + m.altin_borc * gram) | tl }}</b></td>
+            <td>
+              {% if m.gecikme_gun > 0 %}
+                <span class="rozet hata">{{ m.gecikme_gun }} gün gecikme</span>
+              {% elif m.en_eski_vade %}
+                <span class="rozet nobet">{{ m.en_eski_vade | tarih }}</span>
+              {% else %}<span class="ince">vadesiz</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="bos">
+      <svg class="ic"><use href="#i-tik"/></svg>
+      <div>Borçlu müşteri yok. ✓</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

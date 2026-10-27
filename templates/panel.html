@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+{% block sayfa_basligi %}Panel — {{ dukkan }}{% endblock %}
+{% block baslik %}Panel{% endblock %}
+{% block ust %}Genel durum · {{ bugun_tarih | tarih }}{% endblock %}
+
+{% block icerik %}
+
+{# ------------------------------------------------------------ hızlı fiyat #}
+<details class="acilir" {% if request.args.get('fiyat') == '1' %}open{% endif %}>
+  <summary>
+    <svg class="ic"><use href="#i-altin"/></svg>
+    Bugünkü gram fiyatı güncelle — şu an {{ gram_simdi | tl }}
+  </summary>
+  <div class="acilir-icerik">
+    <form method="post" action="{{ url_for('views.fiyat_hizli') }}" class="form-satir">
+      <div class="alan" style="max-width:240px">
+        <label>Gram fiyat (₺)</label>
+        <input name="gram_fiyat" inputmode="decimal" placeholder="örn. 4.250,00" required>
+      </div>
+      <input type="hidden" name="tarih" value="{{ bugun_tarih }}">
+      <button class="buton altin" type="submit">
+        <svg class="ic"><use href="#i-tik"/></svg> Kaydet
+      </button>
+      <span class="ince" style="color:var(--soluk-2);font-size:13px">
+        Altın satışları ve TL↔altın tahsilat dönüşümleri bu fiyatla hesaplanır.
+      </span>
+    </form>
+  </div>
+</details>
+
+{# ---------------------------------------------------------------- KPI'lar #}
+<div class="kpi-izgara">
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone mavi"><svg class="ic"><use href="#i-para"/></svg></span>
+      Toplam TL Alacağı
+    </div>
+    <div class="deger">{{ v.tl_toplam | tl }}</div>
+    <div class="alt">{{ v.borclu_sayisi }} borçlu müşteri · {{ v.musteri_sayisi }} aktif kayıt</div>
+  </div>
+
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone"><svg class="ic"><use href="#i-altin"/></svg></span>
+      Toplam Altın Alacağı
+    </div>
+    <div class="deger altin-renk">{{ v.gr_toplam | gr }}</div>
+    <div class="alt">Güncel fiyatla ≈ {{ v.gr_deger | tl }}</div>
+  </div>
+
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone yesil"><svg class="ic"><use href="#i-kart"/></svg></span>
+      Bugün Tahsilat
+    </div>
+    <div class="deger">{{ v.bugun_esdeger | tl }}</div>
+    <div class="alt">
+      {% if v.bugun_gr > 0 %}{{ v.bugun_gr | gr }} altın dahil · {% endif %}
+      Bu ay: {{ v.ay_esdeger | tl }}
+    </div>
+  </div>
+
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone kirmizi"><svg class="ic"><use href="#i-uyari"/></svg></span>
+      Vadesi Geçen
+    </div>
+    <div class="deger" style="color:{{ 'var(--hata)' if v.gecikmis_sayisi else 'var(--ok)' }}">
+      {{ v.gecikmis_sayisi }}
+    </div>
+    <div class="alt">müşterinin ödemesi gecikti</div>
+  </div>
+</div>
+
+<div class="kpi-izgara">
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone mavi"><svg class="ic"><use href="#i-belge"/></svg></span>
+      Portföydeki Çek &amp; Senet
+    </div>
+    <div class="deger">{{ (v.cek_portfoy.cek_toplam + v.cek_portfoy.senet_toplam) | tl }}</div>
+    <div class="alt">
+      {{ v.cek_portfoy.cek_adet }} çek · {{ v.cek_portfoy.senet_adet }} senet
+      (<a href="{{ url_for('views.cekler_sayfasi') }}">defter</a>)
+    </div>
+  </div>
+
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone kirmizi"><svg class="ic"><use href="#i-users"/></svg></span>
+      Tedarikçiye Borcumuz
+    </div>
+    <div class="deger" style="color:var(--hata)">{{ v.tedarik_borc | tl }}</div>
+    <div class="alt">
+      (<a href="{{ url_for('views.tedarikciler_sayfasi') }}">tedarikçi defteri</a>)
+    </div>
+  </div>
+
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone yesil"><svg class="ic"><use href="#i-para"/></svg></span>
+      Kasaya Bugün Giren
+    </div>
+    <div class="deger">{{ v.kasa_bugun | tl }}</div>
+    <div class="alt">
+      peşin satış dahil
+      (<a href="{{ url_for('views.kasa_sayfasi') }}">kasa defteri</a>)
+    </div>
+  </div>
+
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone"><svg class="ic"><use href="#i-takvim"/></svg></span>
+      Bu Ay Peşin Satış
+    </div>
+    <div class="deger">{{ v.ay_pesin_tl | tl }}</div>
+    <div class="alt">veresiye satışlarından ayrı takip edilir</div>
+  </div>
+</div>
+
+<div class="izgara-2">
+
+  {# ---------------------------------------------------- vadesi geçenler #}
+  <div class="kart">
+    <div class="kart-baslik">
+      <svg class="ic" style="color:var(--hata)"><use href="#i-uyari"/></svg>
+      <h2>Vadesi Geçen Müşteriler</h2>
+      <div class="sag">
+        <a class="buton kucuk sade" href="{{ url_for('views.musteriler_sayfasi', borclu=1) }}">
+          Tümü →
+        </a>
+      </div>
+    </div>
+    <div class="kart-govde sirifiz">
+      {% if v.gecikmis %}
+      <div class="tablo-kaydir">
+        <table class="tablo">
+          <thead>
+            <tr>
+              <th>Müşteri</th>
+              <th>Gecikme</th>
+              <th class="sag">TL Borç</th>
+              <th class="sag">Altın</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in v.gecikmis %}
+            <tr class="gecikmis" data-ara-metin="{{ m.ad }}">
+              <td>
+                <a class="ad" href="{{ url_for('views.musteri_detay', mid=m.id) }}">{{ m.ad }}</a>
+                {% if m.telefon %}<div class="ince">{{ m.telefon }}</div>{% endif %}
+              </td>
+              <td>
+                <span class="rozet hata">{{ m.gecikme_gun }} gün</span>
+                <div class="ince">vade: {{ m.en_eski_vade | tarih }}</div>
+              </td>
+              <td class="sag">{{ m.tl_borc | tl }}</td>
+              <td class="sag">
+                {% if m.altin_borc > 0 %}{{ m.altin_borc | gr }}{% else %}—{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="bos">
+        <svg class="ic"><use href="#i-tik"/></svg>
+        <div>Gecikmiş ödeme yok — her şey yolunda. ✓</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ---------------------------------------------------- son hareketler #}
+  <div class="kart">
+    <div class="kart-baslik">
+      <svg class="ic" style="color:var(--altin-2)"><use href="#i-saat"/></svg>
+      <h2>Son İşlemler</h2>
+      <div class="sag">
+        <a class="buton kucuk sade" href="{{ url_for('views.islem_gecmisi') }}">Geçmiş →</a>
+      </div>
+    </div>
+    <div class="kart-govde sirifiz">
+      <div class="zaman-cizgisi">
+        {% for h in v.son_hareketler %}
+        <div class="zaman-satir">
+          <span class="ikone {{ 'satis' if h.tur == 'Satış' else 'odeme' }}">
+            <svg class="ic" style="width:16px;height:16px">
+              <use href="#{{ 'i-bag' if h.tur == 'Satış' else 'i-kart' }}"/>
+            </svg>
+          </span>
+          <div class="govde">
+            <b>{{ h.musteri }}</b>
+            <div>{{ h.tur }} · {{ h.tarih | tarih }}
+              {% if h.durum == 'iptal' %}<span class="rozet hata">iptal</span>{% endif %}
+            </div>
+          </div>
+          <div class="tutar" style="color:{{ 'var(--hata)' if h.tur == 'Satış' else 'var(--ok)' }}">
+            {% if h.tur == 'Satış' %}+{% else %}−{% endif %}
+            {% if h.pb == 'tl' %}{{ h.tutar | tl }}{% else %}{{ h.tutar | gr }}{% endif %}
+          </div>
+        </div>
+        {% else %}
+        <div class="bos">
+          <svg class="ic"><use href="#i-belge"/></svg>
+          <div>Henüz işlem yok. İlk veresiye satışınızı girin.</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ------------------------------------------------------- ödeme sözleri #}
+<div class="kart" style="margin-bottom:20px">
+  <div class="kart-baslik">
+    <svg class="ic" style="color:var(--uyari)"><use href="#i-takvim"/></svg>
+    <h2>Ödeme Sözleri</h2>
+    <div class="sag">
+      <span class="rozet uyari">{{ v.odeme_sozleri | length }} söz</span>
+    </div>
+  </div>
+  <div class="kart-govde sirifiz">
+    {% if v.odeme_sozleri %}
+    <div class="tablo-kaydir">
+      <table class="tablo">
+        <thead>
+          <tr><th>Müşteri</th><th>Söz Tarihi</th><th>Not</th><th class="sag">Borç</th>
+              <th class="yazdirma-gizle"></th></tr>
+        </thead>
+        <tbody>
+          {% for m in v.odeme_sozleri %}
+          <tr>
+            <td><a class="ad" href="{{ url_for('views.musteri_detay', mid=m.id) }}">{{ m.ad }}</a></td>
+            <td style="white-space:nowrap">
+              <span class="rozet {{ 'ok' if m.sozu_tarih == bugun_tarih else 'uyari' }}">
+                {{ m.sozu_tarih | tarih }}</span>
+            </td>
+            <td class="ince">{{ m.sozu_not or '—' }}</td>
+            <td class="sag">{{ m.tl_borc | tl }}{% if m.altin_borc > 0 %} + {{ m.altin_borc | gr }}{% endif %}</td>
+            <td class="sag yazdirma-gizle">
+              {% if m.telefon %}
+              <a class="buton kucuk" target="_blank" rel="noopener"
+                 href="https://wa.me/90{{ m.telefon | replace(' ', '') | replace('(', '') | replace(')', '') | replace('-', '') }}"
+                 title="WhatsApp ile hatırlat">Hatırlat</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="bos">
+      <svg class="ic"><use href="#i-takvim"/></svg>
+      <div>Ödeme sözü vermiş borçlu yok. Müşteri detay sayfasından söz tarihi girin.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ------------------------------------------------------------ hızlı giriş #}
+<div class="izgara-3" style="margin-top:16px">
+  <div class="kart">
+    <div class="kart-govde" style="display:flex;gap:12px;flex-wrap:wrap">
+      <a class="buton altin" href="{{ url_for('views.musteriler_sayfasi') }}#yeni">
+        <svg class="ic"><use href="#i-ekle"/></svg> Yeni Müşteri
+      </a>
+      <a class="buton" href="{{ url_for('views.satislar_sayfasi') }}">
+        <svg class="ic"><use href="#i-bag"/></svg> Veresiye Satışı
+      </a>
+      <a class="buton yesil" href="{{ url_for('views.tahsilatlar_sayfasi') }}">
+        <svg class="ic"><use href="#i-kart"/></svg> Tahsilat Al
+      </a>
+    </div>
+  </div>
+
+  <div class="kart">
+    <div class="kart-govde">
+      <div class="bilgi-satiri"><span>Bu ay satış</span>
+        <b>{{ v.ay_satis_tl | tl }} {% if v.ay_satis_gr > 0 %}+ {{ v.ay_satis_gr | gr }}{% endif %}</b>
+      </div>
+      <div class="bilgi-satiri"><span>Bu ay tahsilat</span>
+        <b style="color:var(--ok)">{{ v.ay_esdeger | tl }}</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="kart">
+    <div class="kart-govde">
+      <div class="bilgi-satiri"><span>Toplam alacak (TL eşdeğeri)</span>
+        <b style="color:var(--altin-2)">{{ v.genel_deger | tl }}</b>
+      </div>
+      <div class="bilgi-satiri"><span>Son yedek</span>
+        <b style="font-size:13px">
+          {% if v.son_yedek %}{{ v.son_yedek.zaman | saat }} ({{ v.son_yedek.tur }})
+          {% else %}ilk dakikada alınacak{% endif %}
+        </b>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

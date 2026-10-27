@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block sayfa_basligi %}Veresiye Satışları — {{ dukkan }}{% endblock %}
+{% block baslik %}Veresiye Satışları{% endblock %}
+{% block ust %}{{ satislar | length }} kayıt · iptaller silinmez, üzeri çizili kalır{% endblock %}
+
+{% block icerik %}
+
+<details class="acilir">
+  <summary><svg class="ic"><use href="#i-ekle"/></svg> Yeni Veresiye Satışı</summary>
+  <div class="acilir-icerik">
+    <form method="post" action="{{ url_for('views.satis_ekle') }}">
+      <input type="hidden" name="geri" value="{{ url_for('views.satislar_sayfasi') }}">
+      <div class="form-izgara">
+        <div class="alan">
+          <label>Müşteri *</label>
+          <select name="musteri_id" required>
+            <option value="">— seçin —</option>
+            {% for m in musteriler %}
+            <option value="{{ m.id }}">{{ m.ad }}{% if m.telefon %} ({{ m.telefon }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="alan">
+          <label>Satış Şekli</label>
+          <select name="sekl">
+            <option value="veresiye">Veresiye (borç)</option>
+            <option value="pesin">Peşin (kasa girişi)</option>
+          </select>
+        </div>
+        <div class="alan">
+          <label>Ürün Kataloğu <span class="ipucu">(isteğe bağlı)</span></label>
+          <select data-urun-secici name="urun_id">
+            <option value="0" data-tl="0" data-gr="0">— doğrudan gir —</option>
+            {% for u in urunler %}
+            <option value="{{ u.id }}" data-ad="{{ u.ad }}" data-birim="{{ u.birim }}"
+                    data-tl="{{ u.tl_fiyat }}" data-gr="{{ u.gr_miktar }}">{{ u.ad }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="alan">
+          <label>Para Birimi</label>
+          <select name="pb" data-pb>
+            <option value="tl">₺ Türk Lirası</option>
+            <option value="altin">Gram Altın</option>
+          </select>
+        </div>
+        <div class="alan">
+          <label>Tutar * <span class="ipucu">(ürün seçilirse otomatik dolar)</span></label>
+          <input name="tutar" inputmode="decimal" placeholder="örn. 7.500 veya 3,25" required>
+        </div>
+        <div class="alan">
+          <label>Satış Tarihi</label>
+          <input type="date" name="tarih" data-bugun value="{{ bugun_tarih }}">
+        </div>
+        <div class="alan">
+          <label>Vade Tarihi <span class="ipucu">(boş = vadesiz)</span></label>
+          <input type="date" name="vade">
+        </div>
+        <div class="alan genis">
+          <label>Açıklama <span class="ipucu">(ürün, adet, ayar…)</span></label>
+          <input name="aciklama" placeholder="örn. 18 ayar kolye 12 gr">
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <button class="buton altin" type="submit">
+          <svg class="ic"><use href="#i-ekle"/></svg> Satışı Kaydet
+        </button>
+      </div>
+    </form>
+  </div>
+</details>
+
+<div class="kart">
+  <form class="filtre yazdirma-gizle" method="get">
+    <div class="alan"><label>Başlangıç</label>
+      <input type="date" name="baslangic" value="{{ filtreler.baslangic }}"></div>
+    <div class="alan"><label>Bitiş</label>
+      <input type="date" name="bitis" value="{{ filtreler.bitis }}"></div>
+    <div class="alan"><label>Para Birimi</label>
+      <select name="pb">
+        <option value="">Tümü</option>
+        <option value="tl" {{ 'selected' if filtreler.pb == 'tl' }}>TL</option>
+        <option value="altin" {{ 'selected' if filtreler.pb == 'altin' }}>Altın</option>
+      </select></div>
+    <div class="alan"><label>Satış Şekli</label>
+      <select name="sekl">
+        <option value="">Tümü</option>
+        <option value="veresiye" {{ 'selected' if filtreler.sekl == 'veresiye' }}>Veresiye</option>
+        <option value="pesin" {{ 'selected' if filtreler.sekl == 'pesin' }}>Peşin</option>
+      </select></div>
+    <div class="alan"><label>Durum</label>
+      <select name="durum">
+        <option value="aktif" {{ 'selected' if filtreler.durum == 'aktif' }}>Aktif</option>
+        <option value="iptal" {{ 'selected' if filtreler.durum == 'iptal' }}>İptaller</option>
+        <option value="" {{ 'selected' if filtreler.durum == '' }}>Tümü</option>
+      </select></div>
+    <button class="buton" type="submit">Uygula</button>
+    <a class="buton sade" href="{{ url_for('views.satislar_sayfasi') }}">Temizle</a>
+    <a class="buton yesil" style="margin-left:auto"
+       href="{{ url_for('views.rapor_csv', hangi='satislar', baslangic=filtreler.baslangic, bitis=filtreler.bitis) }}">
+      <svg class="ic"><use href="#i-indir"/></svg> CSV
+    </a>
+  </form>
+
+  <div class="kart-govde sirifiz">
+    {% if satislar %}
+    <div class="tablo-kaydir">
+      <table class="tablo">
+        <thead>
+          <tr>
+            <th>Tarih</th>
+            <th>Müşteri</th>
+            <th>Açıklama</th>
+            <th class="sag">Tutar</th>
+            <th class="sag">Fiyat</th>
+            <th>Vade</th>
+            <th>Durum</th>
+            <th class="yazdirma-gizle"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in satislar %}
+          <tr class="{{ 'iptal' if s.durum == 'iptal' }}">
+            <td style="white-space:nowrap">{{ s.tarih | tarih }}</td>
+            <td>
+              <a class="ad" href="{{ url_for('views.musteri_detay', mid=s.musteri_id) }}">
+                {{ s.musteri_ad }}</a>
+            </td>
+            <td class="ince">
+              {% if s.sekl == 'pesin' %}<span class="rozet altin">peşin</span> {% endif %}
+              {{ s.aciklama or '—' }}
+            </td>
+            <td class="sag">
+              {% if s.para_birimi == 'tl' %}
+                <span class="rozet tl">₺</span> {{ s.tutar | tl }}
+              {% else %}
+                <span class="rozet altin">ALTIN</span> {{ s.tutar | gr }}
+              {% endif %}
+            </td>
+            <td class="sag ince">
+              {% if s.para_birimi == 'altin' and s.gram_fiyat %}{{ s.gram_fiyat | tl }}/gr{% else %}—{% endif %}
+            </td>
+            <td style="white-space:nowrap">
+              {% if s.vade %}
+                {{ s.vade | tarih }}
+              {% else %}<span class="ince">vadesiz</span>{% endif %}
+            </td>
+            <td>
+              {% if s.durum == 'iptal' %}
+                <span class="rozet hata">iptal</span>
+                <div class="ince">{{ s.iptal_sebebi }}</div>
+              {% else %}<span class="rozet ok">aktif</span>{% endif %}
+            </td>
+            <td class="sag yazdirma-gizle">
+              {% if s.durum == 'aktif' %}
+              <form method="post" style="display:inline;margin:0"
+                    action="{{ url_for('views.satis_iptal', sid=s.id) }}"
+                    data-sebep data-sebep-metin="Satış iptal sebebi:">
+                <button class="buton kucuk kirmizi" type="submit">İptal</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="bos">
+      <svg class="ic"><use href="#i-bag"/></svg>
+      <div>Kayıt bulunamadı. Filtreleri değiştirin veya yeni satış ekleyin.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

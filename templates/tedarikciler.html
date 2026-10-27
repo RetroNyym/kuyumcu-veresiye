@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block sayfa_basligi %}Tedarikçiler — {{ dukkan }}{% endblock %}
+{% block baslik %}Tedarikçiler{% endblock %}
+{% block ust %}{{ tedarikciler | length }} kayıt · veresiye aldığınız kişi/firmalar (bizim borcumuz){% endblock %}
+
+{% block icerik %}
+
+<details class="acilir">
+  <summary><svg class="ic"><use href="#i-ekle"/></svg> Yeni Tedarikçi Ekle</summary>
+  <div class="acilir-icerik">
+    <form method="post" action="{{ url_for('views.tedarikci_ekle') }}">
+      <div class="form-izgara">
+        <div class="alan"><label>Ad / Firma *</label>
+          <input name="ad" placeholder="örn. Kervan Kuyum" required></div>
+        <div class="alan"><label>Telefon</label>
+          <input name="telefon" inputmode="tel" placeholder="05xx…"></div>
+        <div class="alan genis"><label>Not</label>
+          <input name="notlar" placeholder="işletme koşulları…"></div>
+      </div>
+      <div style="margin-top:16px">
+        <button class="buton altin" type="submit">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</details>
+
+<div class="kart" style="margin-bottom:16px">
+  <div class="filtre yazdirma-gizle">
+    <div class="arama-kutu">
+      <svg class="ic"><use href="#i-ara"/></svg>
+      <input type="search" data-ara="#tedarik-tablosu" placeholder="Tedarikçi ara…">
+    </div>
+    <div class="anahtar-kutu">
+      <a href="{{ url_for('views.tedarikciler_sayfasi') }}" class="aktif">Aktif</a>
+      <a href="{{ url_for('views.tedarikciler_sayfasi', durum='arsiv') }}">Arşiv</a>
+    </div>
+  </div>
+  <div class="kart-govde sirifiz">
+    {% if tedarikciler %}
+    <div class="tablo-kaydir">
+      <table class="tablo" id="tedarik-tablosu">
+        <thead>
+          <tr>
+            <th>Tedarikçi</th>
+            <th>Telefon</th>
+            <th class="sag">Toplam Alış</th>
+            <th class="sag">Toplam Ödeme</th>
+            <th class="sag">Bizim Borcumuz</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tedarikciler %}
+          <tr data-ara-metin="{{ t.ad }} {{ t.telefon }}">
+            <td>
+              <a class="ad" href="{{ url_for('views.tedarikci_detay', tid=t.id) }}">{{ t.ad }}</a>
+              {% if t.notlar %}<div class="ince">{{ t.notlar[:60] }}</div>{% endif %}
+            </td>
+            <td class="ince">{{ t.telefon or '—' }}</td>
+            <td class="sag">{{ t.alis_toplam | tl }}</td>
+            <td class="sag" style="color:var(--ok)">{{ t.odeme_toplam | tl }}</td>
+            <td class="sag">
+              {% if t.borclu %}
+                <b style="color:var(--hata)">{{ t.borc | tl }}</b>
+              {% elif t.avans %}
+                <b style="color:var(--ok)">avans {{ -t.borc | tl }}</b>
+              {% else %}
+                <span class="rozet ok">borcu yok</span>
+              {% endif %}
+            </td>
+            <td class="sag">
+              <a class="buton kucuk" href="{{ url_for('views.tedarikci_detay', tid=t.id) }}">Detay →</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="bos">
+      <svg class="ic"><use href="#i-users"/></svg>
+      <div>Henüz tedarikçi yok. Veresiye aldığınız kişi/firmaları ekleyin.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

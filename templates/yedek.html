@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block sayfa_basligi %}Yedek & Güvenlik — {{ dukkan }}{% endblock %}
+{% block baslik %}Yedek &amp; Güvenlik{% endblock %}
+{% block ust %}Verileriniz asla silinmez · saatlik + günlük otomatik yedekleme{% endblock %}
+
+{% block icerik %}
+
+<div class="kpi-izgara">
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone"><svg class="ic"><use href="#i-saat"/></svg></span>
+      Son Saatlik Yedek
+    </div>
+    <div class="deger" style="font-size:19px">
+      {% if son.son_saatlik %}{{ son.son_saatlik | saat }}{% else %}henüz yok{% endif %}
+    </div>
+    <div class="alt">Her saat başı otomatik · son 72 yedek saklanır</div>
+  </div>
+
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone yesil"><svg class="ic"><use href="#i-kalkan"/></svg></span>
+      Son Günlük Yedek
+    </div>
+    <div class="deger" style="font-size:19px">
+      {% if son.son_gunluk %}{{ son.son_gunluk | tarih }}{% else %}henüz yok{% endif %}
+    </div>
+    <div class="alt">Her gün otomatik · son 120 gün saklanır</div>
+  </div>
+
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone mavi"><svg class="ic"><use href="#i-belge"/></svg></span>
+      Son Aylık Yedek
+    </div>
+    <div class="deger" style="font-size:19px">
+      {% if son.son_aylik %}{{ son.son_aylik }}{% else %}henüz yok{% endif %}
+    </div>
+    <div class="alt">Her ayın ilk günü · 2 yıl saklanır</div>
+  </div>
+
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone kirmizi"><svg class="ic"><use href="#i-uyari"/></svg></span>
+      Toplam Yedek
+    </div>
+    <div class="deger" style="font-size:19px">{{ dosyalar | length }} dosya</div>
+    <div class="alt">
+      <form method="post" action="{{ url_for('views.yedek_manuel') }}" style="margin:0">
+        <button class="buton altin kucuk" type="submit">
+          <svg class="ic" style="width:14px;height:14px"><use href="#i-yenile"/></svg>
+          Şimdi Yedek Al
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="ipucu-band">
+  <svg class="ic"><use href="#i-kalkan"/></svg>
+  <div>
+    <b>Nasıl çalışır?</b> Uygulama açıkken her saat başı <b>saatlik</b>, gün değiştiğinde
+    <b>günlük</b>, ay değiştiğinde <b>aylık</b> yedek otomatik alınır. Uygulama kapalıysa
+    kaçırılan yedek, bir sonraki açılışta tamamlanır. Yedekler bu bilgisayardaki
+    <code>yedekler\</code> klasöründe tutulur; ayrıca <b>Tam JSON Yedeği</b> ile harici
+    bir diske/USB'ye kopyalayabilirsiniz. Geri yükleme yapmadan önce mevcut verileriniz
+    otomatik olarak "on-yukleme" yedeğine kopyalanır — <b>hiçbir şey kaybolmaz.</b>
+  </div>
+</div>
+
+<div class="kart">
+  <div class="kart-baslik">
+    <svg class="ic" style="color:var(--altin-2)"><use href="#i-belge"/></svg>
+    <h2>Yedek Listesi</h2>
+    <div class="sag">
+      <a class="buton kucuk" href="{{ url_for('views.yedek_json') }}">
+        <svg class="ic" style="width:14px;height:14px"><use href="#i-indir"/></svg>
+        Tam JSON Yedeği
+      </a>
+    </div>
+  </div>
+  <div class="kart-govde sirifiz">
+    {% if dosyalar %}
+    <div class="tablo-kaydir">
+      <table class="tablo">
+        <thead>
+          <tr>
+            <th>Tür</th>
+            <th>Dosya</th>
+            <th>Alınma</th>
+            <th class="sag">Boyut</th>
+            <th class="yazdirma-gizle"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in dosyalar %}
+          <tr>
+            <td>
+              {% if d.tur == 'saatlik' %}<span class="rozet tl">saatlik</span>
+              {% elif d.tur == 'gunluk' %}<span class="rozet ok">günlük</span>
+              {% elif d.tur == 'aylik' %}<span class="rozet mor">aylık</span>
+              {% elif d.tur == 'on-yukleme' %}<span class="rozet uyari">geri yükleme öncesi</span>
+              {% else %}<span class="rozet nobet">{{ d.tur }}</span>{% endif %}
+            </td>
+            <td class="ince" style="font-family:monospace">{{ d.ad }}</td>
+            <td style="white-space:nowrap">{{ d.zaman | saat }}</td>
+            <td class="sag ince">{{ d.boyut | boyut }}</td>
+            <td class="sag yazdirma-gizle" style="white-space:nowrap">
+              <a class="buton kucuk" href="{{ url_for('views.yedek_indir', tur=d.tur, ad=d.ad) }}">
+                <svg class="ic" style="width:13px;height:13px"><use href="#i-indir"/></svg> İndir
+              </a>
+              <form method="post" style="display:inline;margin:0"
+                    action="{{ url_for('views.yedek_geri_yukle') }}"
+                    data-onay="{{ d.ad }} dosyasından geri yükleme yapılsın mı? Mevcut veriler önce otomatik olarak yedeklenecek.">
+                <input type="hidden" name="tur" value="{{ d.tur }}">
+                <input type="hidden" name="ad" value="{{ d.ad }}">
+                <button class="buton kucuk yesil" type="submit">Geri Yükle</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="bos">
+      <svg class="ic"><use href="#i-kalkan"/></svg>
+      <div>Henüz yedek yok — uygulama açık kaldığı sürece ilk yedek dakikalar içinde alınır.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

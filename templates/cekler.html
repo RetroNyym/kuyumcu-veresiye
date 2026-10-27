@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block sayfa_basligi %}Çek & Senet — {{ dukkan }}{% endblock %}
+{% block baslik %}Çek &amp; Senet Defteri{% endblock %}
+{% block ust %}Portföydeki besle vadesi yaklaşanlara göre sıralı · tahsil işaretince tahsilat otomatik oluşur{% endblock %}
+
+{% block icerik %}
+
+<div class="kpi-izgara">
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone mavi"><svg class="ic"><use href="#i-belge"/></svg></span>
+      Portföydeki Çek
+    </div>
+    <div class="deger">{{ ozet.cek_toplam | tl }}</div>
+    <div class="alt">{{ ozet.cek_adet }} adet</div>
+  </div>
+  <div class="kart kpi">
+    <div class="ust">
+      <span class="ikone"><svg class="ic"><use href="#i-belge"/></svg></span>
+      Portföydeki Senet
+    </div>
+    <div class="deger altin-renk">{{ ozet.senet_toplam | tl }}</div>
+    <div class="alt">{{ ozet.senet_adet }} adet</div>
+  </div>
+</div>
+
+<details class="acilir">
+  <summary><svg class="ic"><use href="#i-ekle"/></svg> Çek / Senet Portföye Ekle</summary>
+  <div class="acilir-icerik">
+    <form method="post" action="{{ url_for('views.cek_ekle') }}">
+      <div class="form-izgara">
+        <div class="alan"><label>Tür</label>
+          <select name="tur">
+            <option value="cek">Çek</option>
+            <option value="senet">Senet</option>
+          </select></div>
+        <div class="alan"><label>Müşteri *</label>
+          <select name="musteri_id" required>
+            <option value="">— seçin —</option>
+            {% for m in musteriler %}<option value="{{ m.id }}">{{ m.ad }}</option>{% endfor %}
+          </select></div>
+        <div class="alan"><label>Tutar (₺) *</label>
+          <input name="tutar" inputmode="decimal" required></div>
+        <div class="alan"><label>Banka</label>
+          <input name="banka" placeholder="örn. Ziraat"></div>
+        <div class="alan"><label>Çek / Senet No</label>
+          <input name="belge_no" placeholder="000123"></div>
+        <div class="alan"><label>Portföye Alma Tarihi</label>
+          <input type="date" name="tarih" data-bugun value="{{ bugun_tarih }}"></div>
+        <div class="alan"><label>Vade Tarihi *</label>
+          <input type="date" name="vade" required></div>
+        <div class="alan genis"><label>Not</label>
+          <input name="notlar"></div>
+      </div>
+      <div style="margin-top:16px">
+        <button class="buton altin" type="submit">Portföye Ekle</button>
+      </div>
+    </form>
+  </div>
+</details>
+
+<div class="kart">
+  <form class="filtre yazdirma-gizle" method="get">
+    <div class="alan" style="min-width:140px"><label>Tür</label>
+      <select name="tur">
+        <option value="">Tümü</option>
+        <option value="cek" {{ 'selected' if filtreler.tur == 'cek' }}>Çek</option>
+        <option value="senet" {{ 'selected' if filtreler.tur == 'senet' }}>Senet</option>
+      </select></div>
+    <div class="alan" style="min-width:180px"><label>Durum</label>
+      <select name="durum">
+        <option value="portfoy" {{ 'selected' if filtreler.durum == 'portfoy' }}>Portföyde</option>
+        <option value="tahsil" {{ 'selected' if filtreler.durum == 'tahsil' }}>Tahsil Edildi</option>
+        <option value="karsi_hamle" {{ 'selected' if filtreler.durum == 'karsi_hamle' }}>Karşı Tarafa Hamle</option>
+        <option value="karsiliksiz" {{ 'selected' if filtreler.durum == 'karsiliksiz' }}>Karşılıksız</option>
+        <option value="" {{ 'selected' if filtreler.durum == '' }}>Tümü</option>
+      </select></div>
+    <button class="buton" type="submit">Uygula</button>
+    <a class="buton sade" href="{{ url_for('views.cekler_sayfasi') }}">Temizle</a>
+  </form>
+
+  <div class="kart-govde sirifiz">
+    {% if kayitlar %}
+    <div class="tablo-kaydir">
+      <table class="tablo">
+        <thead>
+          <tr>
+            <th>Vade</th>
+            <th>Tür / No</th>
+            <th>Müşteri</th>
+            <th class="sag">Tutar</th>
+            <th>Durum</th>
+            <th class="yazdirma-gizle"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in kayitlar %}
+          <tr class="{{ 'gecikmis' if c.durum == 'portfoy' and c.gun_kaldi is not none and c.gun_kaldi < 0 }}">
+            <td style="white-space:nowrap">
+              {{ c.vade | tarih }}
+              {% if c.durum == 'portfoy' and c.gun_kaldi is not none %}
+                <div class="ince">
+                  {% if c.gun_kaldi >= 0 %}{{ c.gun_kaldi }} gün kaldı
+                  {% else %}<span style="color:var(--hata)">{{ -c.gun_kaldi }} gün gecikti</span>{% endif %}
+                </div>
+              {% endif %}
+            </td>
+            <td>
+              {% if c.tur == 'cek' %}<span class="rozet tl">Çek</span>
+              {% else %}<span class="rozet altin">Senet</span>{% endif %}
+              <div class="ince">{{ (c.banka or '') }} {{ c.belge_no or '' }}</div>
+            </td>
+            <td><a class="ad" href="{{ url_for('views.musteri_detay', mid=c.musteri_id) }}">{{ c.musteri_ad }}</a></td>
+            <td class="sag">{{ c.tutar | tl }}</td>
+            <td>
+              {% if c.durum == 'portfoy' %}<span class="rozet nobet">portföyde</span>
+              {% elif c.durum == 'tahsil' %}<span class="rozet ok">tahsil edildi</span>
+              {% elif c.durum == 'karsi_hamle' %}<span class="rozet mor">karşı tarafa hamle</span>
+              {% else %}<span class="rozet hata">karşılıksız</span>{% endif %}
+              {% if c.notlar %}<div class="ince">{{ c.notlar }}</div>{% endif %}
+            </td>
+            <td class="sag yazdirma-gizle" style="white-space:nowrap">
+              {% if c.durum not in ('tahsil',) %}
+              <form method="post" style="display:inline;margin:0"
+                    action="{{ url_for('views.cek_durum', cid=c.id) }}"
+                    data-onay="{{ c.tutar | tl }} tutarındaki {{ c.tur }} tahsil edildi olarak işaretlensin mi? Müşteriye tahsilat kaydı otomatik oluşur.">
+                <input type="hidden" name="yeni" value="tahsil">
+                <button class="buton kucuk yesil" type="submit">Tahsil</button>
+              </form>
+              <form method="post" style="display:inline;margin:0"
+                    action="{{ url_for('views.cek_durum', cid=c.id) }}"
+                    data-onay="{{ c.tur }} 'karşı tarafa hamle' işaretlensin mi?">
+                <input type="hidden" name="yeni" value="karsi_hamle">
+                <button class="buton kucuk" type="submit">Karşı tarafta</button>
+              </form>
+              {% else %}
+              <form method="post" style="display:inline;margin:0"
+                    action="{{ url_for('views.cek_durum', cid=c.id) }}"
+                    data-onay="Tahsil işareti geri alınacak; otomatik oluşan tahsilat da iptal edilecek. Devam?">
+                <input type="hidden" name="yeni" value="portfoy">
+                <button class="buton kucuk kirmizi" type="submit">Geri Al</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="bos">
+      <svg class="ic"><use href="#i-belge"/></svg>
+      <div>Bu filtrede kayıt yok.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

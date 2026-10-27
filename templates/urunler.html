@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block sayfa_basligi %}Ürünler — {{ dukkan }}{% endblock %}
+{% block baslik %}Ürünler &amp; Birim Fiyat{% endblock %}
+{% block ust %}{{ urunler | length }} ürün · veresiye satışında hızlı seçim için{% endblock %}
+
+{% block icerik %}
+
+<details class="acilir">
+  <summary><svg class="ic"><use href="#i-ekle"/></svg> Yeni Ürün Ekle</summary>
+  <div class="acilir-icerik">
+    <form method="post" action="{{ url_for('views.urun_ekle') }}">
+      <div class="form-izgara">
+        <div class="alan"><label>Ürün Adı *</label>
+          <input name="ad" placeholder="örn. 22 ayar bilezik" required></div>
+        <div class="alan"><label>Birim</label>
+          <select name="birim">
+            <option value="adet">Adet</option>
+            <option value="gr">Gram</option>
+            <option value="cm">Cm</option>
+            <option value="paket">Paket</option>
+          </select></div>
+        <div class="alan"><label>TL Fiyatı <span class="ipucu">(adet baz)</span></label>
+          <input name="tl_fiyat" inputmode="decimal" placeholder="örn. 8.500"></div>
+        <div class="alan"><label>Gram Miktarı <span class="ipucu">(altın ürün ise)</span></label>
+          <input name="gr_miktar" inputmode="decimal" placeholder="örn. 8,25"></div>
+        <div class="alan genis"><label>Not</label>
+          <input name="notlar" placeholder="ayar, model, tedarikçi…"></div>
+      </div>
+      <div style="margin-top:16px">
+        <button class="buton altin" type="submit">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</details>
+
+<div class="kart">
+  <div class="filtre yazdirma-gizle">
+    <div class="arama-kutu">
+      <svg class="ic"><use href="#i-ara"/></svg>
+      <input type="search" data-ara="#urun-tablosu" placeholder="Ürün ara…">
+    </div>
+  </div>
+  <div class="kart-govde sirifiz">
+    {% if urunler %}
+    <div class="tablo-kaydir">
+      <table class="tablo" id="urun-tablosu">
+        <thead>
+          <tr>
+            <th>Ürün</th>
+            <th>Birim</th>
+            <th class="sag">TL Fiyatı</th>
+            <th class="sag">Gram Miktarı</th>
+            <th>Not</th>
+            <th class="yazdirma-gizle"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in urunler %}
+          <tr data-ara-metin="{{ u.ad }} {{ u.notlar }}">
+            <td class="ad">{{ u.ad }}</td>
+            <td class="ince">{{ u.birim }}</td>
+            <td class="sag">{{ u.tl_fiyat | tl }}</td>
+            <td class="sag">{{ u.gr_miktar | gr }}</td>
+            <td class="ince">{{ u.notlar or '—' }}</td>
+            <td class="sag yazdirma-gizle">
+              <form method="post" style="display:inline;margin:0"
+                    action="{{ url_for('views.urun_durum', uid=u.id) }}"
+                    data-onay="{{ u.ad }} arşivlensin mi? (silinmez)">
+                <input type="hidden" name="durum" value="arsiv">
+                <button class="buton kucuk kirmizi" type="submit">Arşivle</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="bos">
+      <svg class="ic"><use href="#i-bag"/></svg>
+      <div>Katalog boş. Sık sattığınız ürünleri ekleyin — veresiye satışı girerken hızlıca seçip fiyatı otomatik doldurun.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if arsiv %}
+<div class="kart" style="margin-top:16px">
+  <div class="kart-baslik">
+    <svg class="ic"><use href="#i-belge"/></svg>
+    <h2>Arşivlenen Ürünler</h2>
+    <div class="sag"><span class="rozet nobet">{{ arsiv | length }}</span></div>
+  </div>
+  <div class="kart-govde sirifiz">
+    <div class="tablo-kaydir">
+      <table class="tablo">
+        <thead><tr><th>Ürün</th><th class="sag">TL Fiyatı</th><th></th></tr></thead>
+        <tbody>
+          {% for u in arsiv %}
+          <tr>
+            <td class="ince">{{ u.ad }}</td>
+            <td class="sag ince">{{ u.tl_fiyat | tl }}</td>
+            <td class="sag">
+              <form method="post" style="display:inline;margin:0"
+                    action="{{ url_for('views.urun_durum', uid=u.id) }}">
+                <input type="hidden" name="durum" value="aktif">
+                <button class="buton kucuk yesil" type="submit">Geri Al</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
