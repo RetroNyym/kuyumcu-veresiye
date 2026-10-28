@@ -6,6 +6,9 @@ yedekler/
 # Gizli anahtar (oturum şifresi)
 gizli_anahtar.txt
 
+# Güncelleme deposu okuma anahtarı (ASLA depoya girmez)
+guncelleme_anahtari.txt
+
 # Python önbelleği
 __pycache__/
 *.pyc

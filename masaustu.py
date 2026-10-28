@@ -1269,7 +1269,7 @@ def guncelleme_kontrol_splash(kok: tk.Tk) -> dict | None:
     def is_parcacigi():
         sonuc[0] = gu.kontrol()
 
-    t = threading.Thread(target=is_parcalasi, daemon=True)
+    t = threading.Thread(target=is_parcacigi, daemon=True)
     t.start()
     t.join(12)
     try:

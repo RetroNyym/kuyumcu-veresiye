@@ -12,11 +12,16 @@ koku = os.path.abspath(SPECPATH)
 
 block_cipher = None
 
+_veriler = [(os.path.join(koku, "hacilar.ico"), ".")]
+_anahtar_dosyasi = os.path.join(koku, "guncelleme_anahtari.txt")
+if os.path.exists(_anahtar_dosyasi):
+    _veriler.append((_anahtar_dosyasi, "."))
+
 a = Analysis(
     [os.path.join(koku, "masaustu.py")],
     pathex=[koku],
     binaries=[],
-    datas=[(os.path.join(koku, "hacilar.ico"), ".")],
+    datas=_veriler,
     hiddenimports=["tkinter", "tkinter.filedialog", "tkinter.messagebox",
                    "tkinter.simpledialog", "tkinter.ttk"],
     hookspath=[],

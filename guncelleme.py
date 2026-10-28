@@ -1,8 +1,11 @@
 """HACILAR KUYUMCULUK — uzaktan güncelleme modülü.
 
 Mantık:
-- Sürümler ayrı, HERKESE AÇIK bir depoda (RetroNyym/hacilar-guncelleme)
-  GitHub Release olarak yayınlanır. Ana kod deposu özel kalır.
+- Sürümler ayrı, ÖZEL bir depoda (RetroNyym/hacilar-guncelleme) GitHub
+  Release olarak yayınlanır. Ana kod deposu da özeldir.
+- Özel depodan okuma için salt-okunur fine-grained token gerekir: token,
+  guncelleme_anahtari.txt içinde gelir ve derlerken exe'ye gömülür. Token
+  YALNIZCA bu depoyu okuyabilir; kod deponuza dokunamaz.
 - Program her açılışta en son sürümü kontrol eder (internet yoksa veya
   kontrol başarısızsa program normal açılır — hiçbir zaman takılmaz).
 - Yayında daha yeni bir sürüm varsa güncelleme MECBURİDİR: kullanıcı ya
@@ -21,9 +24,32 @@ import sys
 import urllib.request
 
 SURUM = "1.0.0"                       # bu programın sürümü
-DEPO = "RetroNyym/hacilar-guncelleme"  # herkese açık güncelleme deposu
+DEPO = "RetroNyym/hacilar-guncelleme"  # ÖZEL güncelleme deposu
 EXE_ADI = "HacilarKuyumculuk.exe"
 ZAMAN_ASIMI = 8                        # saniye
+ANAHTAR_DOSYASI = "guncelleme_anahtari.txt"   # okuma yetkili token (depoya girilmez)
+
+
+def _token() -> str:
+    """Özel depodan indirme için salt-okunur erişim anahtarı.
+
+    Anahtar, proje kökündeki guncelleme_anahtari.txt içindedir ve derlerken
+    exe'nin içine gömülür (depoya commit EDİLMEZ). Sadece bu depoyu okuma
+    yetkili fine-grained token kullanın.
+    """
+    kokler = [getattr(sys, "_MEIPASS", ""),
+              os.path.dirname(os.path.abspath(__file__))]
+    for kok in kokler:
+        if not kok:
+            continue
+        yol = os.path.join(kok, ANAHTAR_DOSYASI)
+        if os.path.exists(yol):
+            try:
+                with open(yol, "r", encoding="utf-8") as f:
+                    return f.read().strip()
+            except OSError:
+                return ""
+    return ""
 
 
 def _reg():
@@ -72,18 +98,26 @@ def surum_yeni_mi(aday: str, mevcut: str) -> bool:
 # --------------------------------------------------------------------------- #
 # Son sürümü sorgula
 # --------------------------------------------------------------------------- #
+def _basliklar() -> dict:
+    b = {
+        "User-Agent": "HacilarKuyumculuk",
+        "Accept": "application/vnd.github+json",
+    }
+    t = _token()
+    if t:
+        b["Authorization"] = f"Bearer {t}"
+    return b
+
+
 def en_yeni_surum() -> dict | None:
     """GitHub API'den son release'i okur.
 
     Dönen: {'surum': '1.1.0', 'exe_url': ..., 'boyut': int, 'notlar': str}
-    Bilgi alınamazsa (internet yok, depo boş, API hatası) -> None.
+    Bilgi alınamazsa (internet yok, anahtar yok, depo boş, API hatası) -> None.
     """
     url = f"https://api.github.com/repos/{DEPO}/releases/latest"
     try:
-        istek = urllib.request.Request(url, headers={
-            "User-Agent": "HacilarKuyumculuk",
-            "Accept": "application/vnd.github+json",
-        })
+        istek = urllib.request.Request(url, headers=_basliklar())
         with urllib.request.urlopen(istek, timeout=ZAMAN_ASIMI) as cevap:
             veri = json.loads(cevap.read().decode("utf-8"))
     except Exception:
@@ -128,7 +162,7 @@ def kontrol() -> dict | None:
 def indir(url: str, hedef: str, ilerleme=None) -> str:
     """Exe'yi indirir; boyut kontrolü yapar; hedef yolunu döndürür."""
     os.makedirs(os.path.dirname(hedef), exist_ok=True)
-    istek = urllib.request.Request(url, headers={"User-Agent": "HacilarKuyumculuk"})
+    istek = urllib.request.Request(url, headers=_basliklar())
     with urllib.request.urlopen(istek, timeout=120) as cevap:
         toplam = int(cevap.headers.get("Content-Length") or 0) or 0
         alinan = 0
