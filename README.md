@@ -44,6 +44,8 @@ Kuyumcular için **premium veresiye takip programı**. Web arayüzlüdür: ana b
 
 ## Kurulum ve Çalıştırma
 
+### Web sürümü (tabletli)
+
 ```bat
 cd kuyumcu-veresiye
 pip install -r requirements.txt
@@ -55,11 +57,25 @@ veya çift tıklayın: **`baslat.bat`**
 Uygulama kendi tarayıcısında açılır. Ekranda yazan **Tablet adresi**ni aynı ağdaki
 tabletten tarayıcıya yazarak kullanabilirsiniz.
 
-## Tek Dosya EXE Üretimi
+### Masaüstü sürümü (tkinter)
+
+```bat
+python masaustu.py
+```
+
+veya çift tıklayın: **`masaustu.bat`**
+
+Masaüstü sürümü web sürümüyle **aynı `veresiye.db` dosyasını paylaşır**
+(ikisinden aynı anda kayıt girilebilir). Panel, müşteriler, satış ekleme,
+tahsilat, ekstre (iptal dahil), ürünler, gram fiyat, işlem geçmişi ve yedek
+sekmelerine sahiptir; premium koyu + altın tema kullanır.
+
+### Tek Dosya EXE Üretimi
 
 ```bat
 pip install pyinstaller
-pyinstaller kuyumcu_veresiye.spec
+pyinstaller kuyumcu_veresiye.spec      :: web sürümü -> dist\KuyumcuVeresiye.exe
+pyinstaller kuyumcu_masaustu.spec      :: masaüstü   -> dist\KuyumcuVeresiyeMasaustu.exe
 ```
 
 Çıktı: `dist\KuyumcuVeresiye.exe` — exe'nin yanında `veresiye.db` ve `yedekler\`
