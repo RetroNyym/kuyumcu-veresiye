@@ -1,8 +1,10 @@
-"""Kuyumcu Veresiye Premium — Masaüstü (tkinter) arayüz.
+"""HACILAR KUYUMCULUK — Veresiye Takibi (tkinter masaüstü arayüzü).
 
-Web sürümüyle **aynı veritabanını** (veresiye.db) paylaşır: web'den girilen
-kaydı masaüstünde (ve tersi) aynı anda görürsünüz. Aynı güvenlik kuralları:
-hiçbir kayıt silinmez; iptal/arşiv olur; tüm işlemler denetim günlüğüne yazılır.
+Tek amaç: veresiye borçları ve takibi.
+- Borçlar sayfası: isim yaz → borcu gör; tüm borçlular tek listede, en altta toplam.
+- İşlemler: borç ekle, tahsilat al, ekstre (TXT/Excel), WhatsApp hatırlatma.
+- Yedek sekmesi: saatlik/günlük/aylık otomatik yedek + tam JSON yedeği.
+- PIN kilidi ve 1 günlük demo + lisans anahtarı korunur.
 
 Çalıştırma:  python masaustu.py   (veya masaustu.bat çift tık)
 EXE üretimi: pyinstaller kuyumcu_masaustu.spec
@@ -249,54 +251,19 @@ class Uygulama:
         self.notlar_ck.pack(fill="both", expand=True, padx=8, pady=(4, 10))
 
         self.tab_panel = ttk.Frame(self.notlar_ck, padding=10)
-        self.tab_musteriler = ttk.Frame(self.notlar_ck, padding=10)
-        self.tab_urunler = ttk.Frame(self.notlar_ck, padding=10)
-        self.tab_tedarik = ttk.Frame(self.notlar_ck, padding=10)
-        self.tab_cek = ttk.Frame(self.notlar_ck, padding=10)
-        self.tab_kasa = ttk.Frame(self.notlar_ck, padding=10)
-        self.tab_rapor = ttk.Frame(self.notlar_ck, padding=10)
-        self.tab_gecmis = ttk.Frame(self.notlar_ck, padding=10)
         self.tab_yedek = ttk.Frame(self.notlar_ck, padding=10)
 
-        self.notlar_ck.add(self.tab_panel, text="  🏠 Panel  ")
-        self.notlar_ck.add(self.tab_musteriler, text="  👥 Müşteriler  ")
-        self.notlar_ck.add(self.tab_urunler, text="  🏷 Ürünler & Fiyat  ")
-        self.notlar_ck.add(self.tab_tedarik, text="  🚚 Tedarikçiler  ")
-        self.notlar_ck.add(self.tab_cek, text="  🧾 Çek & Senet  ")
-        self.notlar_ck.add(self.tab_kasa, text="  💰 Kasa  ")
-        self.notlar_ck.add(self.tab_rapor, text="  📈 Raporlar  ")
-        self.notlar_ck.add(self.tab_gecmis, text="  🕘 İşlem Geçmişi  ")
+        self.notlar_ck.add(self.tab_panel, text="  🏠 Borçlar  ")
         self.notlar_ck.add(self.tab_yedek, text="  💾 Yedek  ")
 
         self.notlar_ck.bind("<<NotebookTabChanged>>", self._sekme_degisti)
         self._panel_kur()
-        self._musteriler_kur()
-        self._urunler_kur()
-        self._tedarik_kur()
-        self._cek_kur()
-        self._kasa_kur()
-        self._rapor_kur()
-        self._gecmis_kur()
         self._yedek_kur()
 
     def _sekme_degisti(self, _e=None):
         secili = self.notlar_ck.select()
         if secili == str(self.tab_panel):
             self.panel_yenile()
-        elif secili == str(self.tab_musteriler):
-            self.musteriler_yenile()
-        elif secili == str(self.tab_urunler):
-            self.urunler_yenile()
-        elif secili == str(self.tab_tedarik):
-            self.tedarik_yenile()
-        elif secili == str(self.tab_cek):
-            self.cek_yenile()
-        elif secili == str(self.tab_kasa):
-            self.kasa_yenile()
-        elif secili == str(self.tab_rapor):
-            self.rapor_yenile()
-        elif secili == str(self.tab_gecmis):
-            self.gecmis_yenile()
         elif secili == str(self.tab_yedek):
             self.yedek_yenile()
 
@@ -315,6 +282,7 @@ class Uygulama:
             agac.heading(b, text=b)
             agac.column(b, width=w, anchor=h)
         agac.tag_configure("gecikmis", foreground=KIRMIZI)
+        agac.tag_configure("borc", foreground=KIRMIZI)
         agac.tag_configure("pesin", foreground=UYARI)
         agac.tag_configure("ok", foreground=YESIL)
         agac.tag_configure("soluk", foreground=SOLUK)
@@ -325,270 +293,130 @@ class Uygulama:
         kay.pack(side="right", fill="y")
         return agac
 
-    # ================================================================ PANEL
+    # ================================================================ BORCLAR
     def _panel_kur(self):
-        kpi = ttk.Frame(self.tab_panel)
-        kpi.pack(fill="x")
-        self.kpi: dict[str, ttk.Label] = {}
-        kartlar = [
-            ("tl", "Toplam TL Alacak"),
-            ("altin", "Toplam Altın Borç"),
-            ("tl_deger", "Altının TL Değeri"),
-            ("genel", "Genel Toplam"),
-            ("tahsil_bugun", "Bugün Tahsilat (TL)"),
-            ("satis_ay", "Bu Ay Veresiye (TL)"),
-        ]
-        kart_aciklamalari = {
-            "tl": "Müşterilerin kapatilmemis toplam TL borcu.",
-            "altin": "Müşterilerin toplam altin (gram) borcu.",
-            "tl_deger": "Altin borclarin guncel gram fiyatindaki TL karsiligi.",
-            "genel": "TL alacak + altin degeri toplami (genel durum).",
-            "tahsil_bugun": "Bugun yapilan toplam tahsilat (TL).",
-            "satis_ay": "Bu ay yapilan veresiye satislari (TL).",
-            "gecikme": "Vadesi gecen alacaklarin toplami (TL degeri).",
-            "orani": "Son 3 ayda veresiye satislarina gore tahsilat yuzdesi.",
-            "risk": "Vadesi 90 gunden fazla gecmis alacaklar — once bunlari takip edin.",
-        }
-        for anahtar, etiket in kartlar:
-            kart = ttk.Frame(kpi, style="Panel.TFrame", padding=(14, 12))
-            kart.pack(side="left", fill="x", expand=True, padx=(0 if anahtar == "tl" else 8, 0))
-            etik = ttk.Label(kart, text=etiket, style="KpiEtiket.TLabel")
-            etik.pack(anchor="w")
-            ipucu(etik, kart_aciklamalari[anahtar])
-            self.kpi[anahtar] = ttk.Label(kart, text="—", style="KpiDeger.TLabel")
-            self.kpi[anahtar].pack(anchor="w")
-
-        # --- premium: yaşlandırma / tahsilat oranı / risk kartları ----------
-        kpi2 = ttk.Frame(self.tab_panel)
-        kpi2.pack(fill="x", pady=(8, 0))
-        kartlar2 = [
-            ("gecikme", "Vadesi Geçen Toplam (TL değeri)"),
-            ("orani", "Tahsilat Oranı (son 3 ay)"),
-            ("risk", "Yüksek Risk — 90+ Gün (TL değeri)"),
-        ]
-        for anahtar, etiket in kartlar2:
-            kart = ttk.Frame(kpi2, style="Panel.TFrame", padding=(14, 12))
-            kart.pack(side="left", fill="x", expand=True, padx=(0 if anahtar == "gecikme" else 8, 0))
-            ttk.Label(kart, text=etiket, style="KpiEtiket.TLabel").pack(anchor="w")
-            self.kpi[anahtar] = ttk.Label(kart, text="—", style="KpiDeger.TLabel")
-            self.kpi[anahtar].pack(anchor="w")
-
-        # --- premium: 6 aylık veresiye ↔ tahsilat trendi --------------------
-        grafik_kart = ttk.Frame(self.tab_panel, style="Panel.TFrame", padding=(12, 8))
-        grafik_kart.pack(fill="x", pady=(10, 0))
-        ttk.Label(grafik_kart, text="6 Aylık Veresiye ↔ Tahsilat Trendi",
-                  style="Altin.TLabel").pack(anchor="w")
-        self.grafik = tk.Canvas(grafik_kart, bg=PANEL, highlightthickness=0,
-                                height=150, borderwidth=0)
-        self.grafik.pack(fill="x", pady=(4, 0))
-        self.grafik.bind("<Configure>", lambda _e: self._grafik_guncelle())
-
-        alt = ttk.Frame(self.tab_panel)
-        alt.pack(fill="both", expand=True, pady=(12, 0))
-        solv = ttk.Frame(alt)
-        solv.pack(side="left", fill="both", expand=True)
-        sags = ttk.Frame(alt)
-        sags.pack(side="left", fill="both", expand=True, padx=(10, 0))
-
-        ttk.Label(solv, text="Vadesi Geçenler", style="Altin.TLabel").pack(anchor="w")
-        self.gecikmis_agac = self._agac(
-            solv, ["Müşteri", "Vade", "TL Borç", "Altın", "Telefon"],
-            genislikler=(170, 100, 110, 100, 120), sagalar=(2, 3))
-
-        ttk.Label(sags, text="Ödeme Sözü Veren Borçlular", style="Altin.TLabel").pack(anchor="w")
-        self.soz_agac = self._agac(
-            sags, ["Müşteri", "Söz Tarihi", "Not", "TL Borç", "Altın"],
-            genislikler=(140, 110, 170, 110, 100), sagalar=(3, 4))
-
-        ttk.Label(self.tab_panel, text="Son İşlemler (son 15)", style="Altin.TLabel").pack(
-            anchor="w", pady=(10, 0))
-        self.son_agac = self._agac(
-            self.tab_panel, ["Zaman", "İşlem", "Açıklama", "Tutar"], sagalar=(3,))
-
-    def panel_yenile(self):
-        v = sv.panel()
-        self.fiyat_etiketi.configure(
-            text=f"Güncel gram fiyatı: {tl(v['gram_fiyat'])}   ·   "
-                 f"{v['musteri_sayisi']} aktif müşteri, {v['borclu_sayisi']} borçlu   ·   "
-                 f"web sürümüyle aynı veri")
-        self.kpi["tl"].configure(text=tl(v["tl_toplam"]))
-        self.kpi["altin"].configure(text=gr(v["gr_toplam"]))
-        self.kpi["tl_deger"].configure(text=tl(v["gr_deger"]))
-        self.kpi["genel"].configure(text=tl(v["genel_deger"]))
-        self.kpi["tahsil_bugun"].configure(text=tl(v["bugun_tl"]))
-        self.kpi["satis_ay"].configure(text=tl(v["ay_satis_tl"]))
-
-        ya = sv.yaslandirma()
-        self.kpi["gecikme"].configure(text=tl(sum(ya["kova"].values())))
-        self.kpi["risk"].configure(text=tl(ya["kova"]["90+"]))
-        self.kpi["orani"].configure(text=f"% {sv.tahsilat_orani(3):.1f}".replace(".", ","))
-        self._grafik_guncelle()
-
-        for a in (self.gecikmis_agac, self.soz_agac, self.son_agac):
-            a.delete(*a.get_children())
-
-        for m in v.get("gecikmis", []):
-            self.gecikmis_agac.insert("", "end", tags=("gecikmis",), values=(
-                m["ad"], tarih_yaz(m.get("vade", "")), tl(m["tl_borc"]),
-                gr(m["altin_borc"]), m.get("telefon", "")))
-
-        for m in v.get("odeme_sozleri", []):
-            self.soz_agac.insert("", "end", tags=("pesin",), values=(
-                m["ad"], tarih_yaz(m["sozu_tarih"]), m.get("sozu_not", ""),
-                tl(m["tl_borc"]), gr(m["altin_borc"])))
-
-        for h in v.get("son_hareketler", []):
-            tutar = gr(h.get("tutar", 0)) if h.get("pb") == "altin" else tl(h.get("tutar", 0))
-            islem = str(h.get("aciklama") or h.get("tur", ""))
-            self.son_agac.insert("", "end", tags=("ok",) if h.get("tur", "") != "Satış" else (),
-                                 values=(tarih_yaz(h.get("zaman", "")), h.get("tur", ""),
-                                         islem[:60], tutar))
-
-    def _grafik_guncelle(self):
-        tuval = getattr(self, "grafik", None)
-        if tuval is None:
-            return
-        tuval.delete("all")
-        try:
-            veri = list(reversed(sv.rapor_aylik(6)))
-        except Exception:
-            return
-        gen = tuval.winfo_width()
-        if gen < 200:
-            gen = 900
-        yuk = 150
-        sol, sag, ust, alt = 52, 12, 16, 26
-        maks = max([r["satis_tl"] for r in veri] + [r["tahsilat_tl"] for r in veri] + [1.0])
-        tuval.create_line(sol, yuk - alt, gen - sag, yuk - alt, fill=CIZGI, width=1)
-
-        def xy(i, deger):
-            x = sol + i * (gen - sol - sag) / max(len(veri) - 1, 1)
-            y = (yuk - alt) - (deger / maks) * (yuk - alt - ust)
-            return x, y
-
-        AY_ADI = ["", "Oca", "Şub", "Mar", "Nis", "May", "Haz",
-                  "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"]
-        for i, r in enumerate(veri):
-            x = xy(i, 0)[0]
-            tuval.create_text(x, yuk - alt + 11, text=AY_ADI[int(r["ay"][5:7])],
-                              fill=SOLUK, font=("Segoe UI", 8))
-        for dizi, renk in (([r["satis_tl"] for r in veri], ALTIN),
-                           ([r["tahsilat_tl"] for r in veri], YESIL)):
-            noktalar = []
-            for i, deger in enumerate(dizi):
-                noktalar += xy(i, deger)
-            if len(noktalar) >= 4:
-                tuval.create_line(*noktalar, fill=renk, width=2, smooth=True)
-            for i, deger in enumerate(dizi):
-                x, y = xy(i, deger)
-                tuval.create_oval(x - 3, y - 3, x + 3, y + 3, fill=renk, outline="")
-        # gölge çizelge
-        tuval.create_rectangle(sol + 2, 4, sol + 12, 14, fill=ALTIN, outline="")
-        tuval.create_text(sol + 17, 9, text="Veresiye satış", fill=METIN,
-                          font=("Segoe UI", 8), anchor="w")
-        tuval.create_rectangle(sol + 110, 4, sol + 120, 14, fill=YESIL, outline="")
-        tuval.create_text(sol + 125, 9, text="Tahsilat", fill=METIN,
-                          font=("Segoe UI", 8), anchor="w")
-
-    # ========================================================= MÜŞTERİLER
-    def _musteriler_kur(self):
-        ust = ttk.Frame(self.tab_musteriler)
-        ust.pack(fill="x")
-        ttk.Label(ust, text="Ara:").pack(side="left")
+        # --- buyuk arama alani: isim yaz -> borcu gor --------------------- #
+        ara = ttk.Frame(self.tab_panel)
+        ara.pack(fill="x")
+        ttk.Label(ara, text="🔎", font=("Segoe UI", 15)).pack(side="left")
         self.m_ara = tk.StringVar()
-        girdi = ttk.Entry(ust, textvariable=self.m_ara, width=30)
-        girdi.pack(side="left", padx=8)
-        girdi.bind("<KeyRelease>", lambda _e: self.musteriler_yenile())
-        self.m_borclu = tk.BooleanVar(value=False)
-        ttk.Checkbutton(ust, text="Sadece borçlular", variable=self.m_borclu,
-                        command=self.musteriler_yenile).pack(side="left", padx=8)
+        girdi = ttk.Entry(ara, textvariable=self.m_ara, font=("Segoe UI", 13), width=32)
+        girdi.pack(side="left", padx=8, ipady=6)
+        girdi.bind("<KeyRelease>", lambda _e: self.panel_yenile())
+        ipucu(girdi, "Müşteri adı veya telefon yazın —\nborcu anında görürsünüz.")
+        self.m_borclu = tk.BooleanVar(value=True)
+        cb = ttk.Checkbutton(ara, text="Sadece borçlular", variable=self.m_borclu,
+                             command=self.panel_yenile)
+        cb.pack(side="left", padx=12)
+        ipucu(cb, "İşareti kaldırırsanız borcu olmayanlar\ndahil tüm müşteriler listelenir.")
 
-        dugme = ttk.Frame(self.tab_musteriler)
+        # --- islem dugmeleri ---------------------------------------------- #
+        dugme = ttk.Frame(self.tab_panel)
         dugme.pack(fill="x", pady=8)
-        musteri_dugmeleri = (
+        for yazi, komut, stil, aciklama in (
             ("+ Yeni Müşteri", self.musteri_dlg_yeni, "Altin.TButton",
              "Yeni müşteri kartı açar: ad, telefon,\nkredi limiti, ödeme sözü, not."),
+            ("💰 Borç Ekle", lambda: self._m_semma(self.satis_dlg), None,
+             "Seçili müşteriye veresiye borç işler\n(tarih, tutar, vade)."),
+            ("✅ Tahsilat Al", lambda: self._m_semma(self.tahsilat_dlg), "Yesil.TButton",
+             "Seçili müşteriden ödeme alır;\nborç en eski satıştan başlayarak kapanır."),
             ("✎ Düzenle", lambda: self._m_semma(self.musteri_dlg_duzenle), None,
              "Seçili müşterinin bilgilerini günceller."),
-            ("Satış Ekle", lambda: self._m_semma(self.satis_dlg), None,
-             "Seçili müşteriye veresiye veya peşin\nsatış işler."),
-            ("Tahsilat Al", lambda: self._m_semma(self.tahsilat_dlg), "Yesil.TButton",
-             "Seçili müşteriden ödeme alır.\nBorç eski satıştan başlayarak kapanır."),
-            ("Ekstre", lambda: self._m_semma(self.ekstre_penceresi), None,
+            ("📄 Ekstre", lambda: self._m_semma(self.ekstre_penceresi), None,
              "Seçili müşterinin hesap dökümünü açar\n(TXT veya Excel olarak kaydedilir)."),
-            ("📱 WhatsApp Hatırlatma", lambda: self._m_semma(self.whatsapp_dlg), None,
-             "Borç hatırlatma mesajı üretir,\nWhatsApp'ta açar veya panoya kopyalar."),
-            ("📊 Excel'e Aktar", self.musterileri_excel_aktar, None,
-             "Tüm müşteri listesini borçlarıyla\nbirlikte Excel (.xlsx) olarak kaydeder."),
+            ("📱 WhatsApp", lambda: self._m_semma(self.whatsapp_dlg), None,
+             "Borç hatırlatma mesajı üretir;\nWhatsApp\'ta açar veya panoya kopyalar."),
+            ("📊 Excel\'e Aktar", self.musterileri_excel_aktar, None,
+             "Borçlu listesini toplamlarıyla birlikte\nExcel (.xlsx) olarak kaydeder."),
             ("Arşivle / Geri Al", self.musteri_durum_degistir, None,
              "Seçili müşteriyi arşive kaldırır (silinmez)\nveya listeye geri alır."),
-        )
-        for yazi, komut, stil, aciklama in musteri_dugmeleri:
-            btn = ttk.Button(dugme, text=yazi,
-                             style=stil or "TButton", command=komut)
+        ):
+            btn = ttk.Button(dugme, text=yazi, style=stil or "TButton", command=komut)
             btn.pack(side="left", padx=(0, 7))
             ipucu(btn, aciklama)
 
-        kolonlar = ["ad", "telefon", "kategori", "sozu", "tl_borc", "altin_borc",
-                    "gecikme", "limit"]
-        basliklar = {"ad": "Müşteri", "telefon": "Telefon", "kategori": "Kategori",
-                     "sozu": "Ödeme Sözü", "tl_borc": "TL Borç",
-                     "altin_borc": "Altın Borç", "gecikme": "Vade Aşımı (gün)",
-                     "limit": "Limit"}
-        genislikler = {"ad": 180, "telefon": 110, "kategori": 80, "sozu": 140,
-                       "tl_borc": 90, "altin_borc": 90, "gecikme": 105, "limit": 85}
-        self.m_agac = ttk.Treeview(self.tab_musteriler, columns=kolonlar, show="headings")
-        for k in kolonlar:
-            self.m_agac.heading(k, text=basliklar[k])
-            self.m_agac.column(k, width=genislikler[k],
-                               anchor="e" if k in ("tl_borc", "altin_borc",
-                                                   "gecikme", "limit") else "w")
-        kay = ttk.Scrollbar(self.tab_musteriler, orient="vertical",
-                            command=self.m_agac.yview)
-        self.m_agac.configure(yscrollcommand=kay.set)
-        sarici = ttk.Frame(self.tab_musteriler)
-        sarici.pack(fill="both", expand=True, pady=(0, 8))
-        self.m_agac.pack(in_=sarici, side="left", fill="both", expand=True)
-        kay.pack(in_=sarici, side="right", fill="y")
-        self.m_agac.tag_configure("borc", foreground=KIRMIZI)
-        self.m_agac.tag_configure("arsiv", foreground=SOLUK)
-        self.m_agac.bind("<<TreeviewSelect>>", self._m_sec_degisti)
-        self.m_agac.bind("<Double-1>", lambda _e: self._m_semma(self.ekstre_penceresi))
-        self.musteriler_yenile()
+        # --- en altta toplam cubugu (her zaman gorunur) -------------------- #
+        self.toplam_cubugu = ttk.Frame(self.tab_panel, style="Panel.TFrame",
+                                       padding=(16, 12))
+        self.toplam_cubugu.pack(side="bottom", fill="x", pady=(8, 0))
+        self.toplam_etiket = ttk.Label(self.toplam_cubugu, text="—",
+                                       style="KpiDeger.TLabel")
+        self.toplam_etiket.pack(side="left")
+        ipucu(self.toplam_etiket, "Listedeki borçların toplamı:\nTL borç + altın borcun "
+                                  "güncel gram\nfiyatındaki değeri.")
+        self.sayi_etiket = ttk.Label(self.toplam_cubugu, text="", style="Soluk.TLabel",
+                                     background=PANEL)
+        self.sayi_etiket.pack(side="right")
+
+        # --- borc listesi --------------------------------------------------- #
+        self.borc_agac = self._agac(self.tab_panel,
+                                    ["Müşteri", "Telefon", "TL Borç", "Altın Borç",
+                                     "Toplam (TL değeri)", "En Eski Vade", "Aşım (gün)"],
+                                    genislikler=(215, 120, 110, 110, 140, 115, 95),
+                                    sagalar=(2, 3, 4, 6), yuk=16)
+        self.borc_agac.bind("<<TreeviewSelect>>", self._m_sec_degisti)
+        self.borc_agac.bind("<Double-1>",
+                            lambda _e: self._m_semma(self.ekstre_penceresi))
+        self.panel_yenile()
+
+    def musteriler_yenile(self):
+        """Eski isim uyumlulugu: listeyi yeniden doldurur."""
+        self.panel_yenile()
+
+    def panel_yenile(self):
+        q = self.m_ara.get()
+        self.borc_agac.delete(*self.borc_agac.get_children())
+        aktif = sv.musteriler(q=q)
+        arsiv = sv.musteriler(q=q, durum="arsiv")
+        if self.m_borclu.get():
+            aktif = [m for m in aktif if m["borclu"]]
+        kur = sv.fiyat_getir()
+        toplam_tl = toplam_gr = toplam_deger = 0.0
+        borclu_sayi = 0
+        for i, m in enumerate(aktif):
+            deger = float(m["tl_borc"]) + float(m["altin_borc"]) * kur
+            toplam_tl += float(m["tl_borc"])
+            toplam_gr += float(m["altin_borc"])
+            toplam_deger += deger
+            gun = int(m.get("gecikme_gun") or 0)
+            if m["borclu"]:
+                borclu_sayi += 1
+            et = (("gecikmis",) if gun > 0 else ("borc",) if m["borclu"] else ("ok",))
+            if i % 2:
+                et = et + ("cift",)
+            vade = (tarih_yaz(m.get("en_eski_vade", ""))
+                    if m.get("en_eski_vade") else "—")
+            self.borc_agac.insert("", "end", iid=str(m["id"]), tags=et, values=(
+                m["ad"], m["telefon"], tl(m["tl_borc"]), gr(m["altin_borc"]),
+                tl(deger), vade, gun if gun > 0 else ""))
+        for i, m in enumerate(arsiv):
+            et = ("soluk",) + (("cift",) if i % 2 else ())
+            self.borc_agac.insert("", "end", iid=str(m["id"]), tags=et, values=(
+                m["ad"] + "  (arşiv)", m["telefon"], tl(m["tl_borc"]),
+                gr(m["altin_borc"]), tl(float(m["tl_borc"])
+                                        + float(m["altin_borc"]) * kur),
+                "—", ""))
+        self.fiyat_etiketi.configure(text=f"Güncel gram fiyatı: {tl(kur)}")
+        self.toplam_etiket.configure(
+            text=f"TOPLAM ALACAK:    {tl(toplam_tl)}  +  {gr(toplam_gr)}"
+                 f"    =    {tl(toplam_deger)}")
+        self.sayi_etiket.configure(
+            text=f"{borclu_sayi} borçlu / {len(aktif)} müşteri listeleniyor")
 
     def _m_sec_degisti(self, _e=None):
-        sec = self.m_agac.selection()
+        sec = self.borc_agac.selection()
         if sec:
             iid = sec[0]
-            if iid in ("arsiv_basi",) or not iid.isdigit():
-                self.secili_musteri = None
-            else:
+            if iid.isdigit():
                 self.secili_musteri = int(iid)
+            else:
+                self.secili_musteri = None
 
     def _m_semma(self, fonks):
         if self.secili_musteri is None:
             messagebox.showinfo("Seçim yok", "Önce listeden bir müşteri seçin.")
             return
         fonks(self.secili_musteri)
-
-    def musteriler_yenile(self):
-        q = self.m_ara.get()
-        self.m_agac.delete(*self.m_agac.get_children())
-        arsiv = sv.musteriler(q=q, durum="arsiv")
-        for m in sv.musteriler(q=q, sadece_borclu=self.m_borclu.get()):
-            gun = int(m.get("gecikme_gun") or 0)
-            et = ("borc",) if m["borclu"] else ()
-            if gun > 0:
-                et = et + ("gecikmis",)
-            soz = (tarih_yaz(m["sozu_tarih"]) + " " + (m.get("sozu_not") or "")[:18]).strip()
-            self.m_agac.insert("", "end", iid=str(m["id"]), tags=et, values=(
-                m["ad"], m["telefon"], m.get("kategori", ""), soz,
-                tl(m["tl_borc"]), gr(m["altin_borc"]), gun, tl(m["limit_tl"])))
-        for m in arsiv:
-            soz = (tarih_yaz(m["sozu_tarih"]) + " " + (m.get("sozu_not") or "")[:18]).strip()
-            self.m_agac.insert("", "end", iid=str(m["id"]), tags=("arsiv",), values=(
-                m["ad"] + "  (arşiv)", m["telefon"], m.get("kategori", ""), soz,
-                tl(m["tl_borc"]), gr(m["altin_borc"]), 0, tl(m["limit_tl"])))
 
     def musteri_dlg_yeni(self):
         self._musteri_dlg(None)
@@ -944,151 +772,6 @@ class Uygulama:
                 f.write(metin.get("1.0", "end"))
             messagebox.showinfo("Kaydedildi", dosya, parent=self.kok)
 
-    # ======================================================= ÜRÜN / FİYAT
-    def _urunler_kur(self):
-        pan = ttk.Frame(self.tab_urunler)
-        pan.pack(fill="both", expand=True)
-        sol = ttk.Frame(pan)
-        sol.pack(side="left", fill="both", expand=True, padx=(0, 12))
-        sag = ttk.Frame(pan)
-        sag.pack(side="left", fill="both", expand=True)
-
-        kart = ttk.Frame(sol, style="Panel.TFrame", padding=14)
-        kart.pack(fill="x")
-        ttk.Label(kart, text="Yeni Ürün", style="Altin.TLabel").pack(anchor="w")
-        uu: dict[str, tk.StringVar] = {}
-        for k, etiket in [("ad", "Ürün Adı *"), ("birim", "Birim (adet/gr/cm/paket)"),
-                          ("tl_fiyat", "TL Fiyatı"), ("gr_miktar", "Gram Miktarı"),
-                          ("notlar", "Not")]:
-            satir = ttk.Frame(kart)
-            satir.pack(fill="x", pady=3)
-            ttk.Label(satir, text=etiket, style="Panel.TLabel", width=24).pack(side="left")
-            uu[k] = tk.StringVar()
-            ttk.Entry(satir, textvariable=uu[k]).pack(side="left", fill="x", expand=True)
-
-        def ekle():
-            try:
-                sv.urun_ekle(uu["ad"].get(), uu["birim"].get() or "adet",
-                             sayi(uu["tl_fiyat"].get()), sayi(uu["gr_miktar"].get()),
-                             uu["notlar"].get())
-            except ValueError as hata:
-                messagebox.showwarning("Hata", str(hata))
-                return
-            for v in uu.values():
-                v.set("")
-            self.urunler_yenile()
-
-        ttk.Button(kart, text="Ürünü Ekle", style="Altin.TButton", command=ekle).pack(
-            anchor="w", pady=(8, 0))
-
-        ttk.Label(sol, text="Ürünler", style="Altin.TLabel").pack(anchor="w", pady=(10, 0))
-        self.u_agac = self._agac(sol, ["Ürün", "Birim", "TL Fiyatı", "Gram"],
-                                 genislikler=(200, 70, 110, 100), sagalar=(2, 3))
-
-        self.u_secilen: int | None = None
-        self.u_agac.bind("<<TreeviewSelect>>", self._u_sec_degisti)
-
-        def durum_degistir():
-            if self.u_secilen is None:
-                messagebox.showinfo("Seçim yok", "Listeden bir ürün seçin.")
-                return
-            u = sv.urun_getir(self.u_secilen)
-            if not u:
-                return
-            if u["durum"] == "aktif":
-                soru = f"'{u['ad']}' arşivlensin mi? (silinmez)"
-                yeni = "arsiv"
-            else:
-                soru = f"'{u['ad']}' listeye geri alınsın mı?"
-                yeni = "aktif"
-            if messagebox.askyesno("Ürün durumu", soru):
-                sv.urun_durum(u["id"], yeni)
-                self.urunler_yenile()
-
-        ttk.Button(sol, text="Arşivle / Geri Al", command=durum_degistir).pack(
-            anchor="w", pady=6)
-
-        fkart = ttk.Frame(sag, style="Panel.TFrame", padding=14)
-        fkart.pack(fill="x")
-        ttk.Label(fkart, text="Gram Fiyatı Kaydet", style="Altin.TLabel").pack(anchor="w")
-        self.f_tarih = tk.StringVar(value=date.today().isoformat())
-        self.f_fiyat = tk.StringVar(value="%g" % sv.fiyat_getir())
-        for etiket, var in [("Tarih (AAAA-AA-GG)", self.f_tarih), ("Fiyat (₺/gr)", self.f_fiyat)]:
-            satir = ttk.Frame(fkart)
-            satir.pack(fill="x", pady=3)
-            ttk.Label(satir, text=etiket, style="Panel.TLabel", width=20).pack(side="left")
-            ttk.Entry(satir, textvariable=var, width=16).pack(side="left")
-
-        def fkaydet():
-            try:
-                sv.fiyat_kaydet(self.f_tarih.get() or date.today().isoformat(),
-                                sayi(self.f_fiyat.get()))
-            except ValueError as hata:
-                messagebox.showwarning("Hata", str(hata))
-                return
-            self.panel_yenile()
-            messagebox.showinfo("Tamam", "Fiyat kaydedildi.")
-
-        ttk.Button(fkart, text="Fiyatı Kaydet", style="Altin.TButton", command=fkaydet).pack(
-            anchor="w", pady=(8, 0))
-
-        ttk.Label(sag, text="Fiyat Geçmişi (son 15)", style="Altin.TLabel").pack(
-            anchor="w", pady=(10, 0))
-        self.f_agac = self._agac(sag, ["Tarih", "Fiyat"], genislikler=(130, 130), sagalar=(1,))
-
-    def _u_sec_degisti(self, _e=None):
-        sec = self.u_agac.selection()
-        if sec:
-            self.u_secilen = int(self.u_agac.item(sec[0])["values"][0])
-
-    def urunler_yenile(self):
-        self.u_agac.delete(*self.u_agac.get_children())
-        for u in sv.urunler():
-            self.u_agac.insert("", "end", values=(u["ad"], u["birim"],
-                                                  tl(u["tl_fiyat"]), gr(u["gr_miktar"])))
-        self.f_agac.delete(*self.f_agac.get_children())
-        for f in sv.fiyat_gecmisi(15):
-            self.f_agac.insert("", "end", values=(tarih_yaz(f["tarih"]), tl(f["gram_fiyat"])))
-
-    # ============================================================ GEÇMİŞ
-    def _gecmis_kur(self):
-        ttk.Label(self.tab_gecmis,
-                  text="İşlem Geçmişi — salt-ekleme denetim kaydı (son 300)",
-                  style="Altin.TLabel").pack(anchor="w")
-        self.g_agac = self._agac(self.tab_gecmis,
-                                 ["Zaman", "İşlem", "Tablo", "Kayıt"],
-                                 genislikler=(150, 160, 130, 80))
-        ttk.Label(self.tab_gecmis, text="Detay: satıra çift tıklayın.",
-                  style="Soluk.TLabel").pack(anchor="w")
-        self.g_detay_kutusu = tk.Text(self.tab_gecmis, height=9, bg=PANEL, fg=METIN,
-                                      font=("Consolas", 9), borderwidth=0, wrap="word")
-        self.g_detay_kutusu.pack(fill="x", pady=(6, 0))
-        self.g_veri: dict[str, dict] = {}   # iid -> hareket detayı
-        self.g_agac.bind("<Double-1>", self._gecmis_sec)
-
-    def _gecmis_sec(self, _e=None):
-        sec = self.g_agac.selection()
-        kutu = self.g_detay_kutusu
-        kutu.delete("1.0", "end")
-        if not sec:
-            return
-        iid = sec[0]
-        h = self.g_veri.get(iid)
-        if h:
-            kutu.insert("1.0", f"{h['zaman']} · {h['islem']} "
-                         f"({h['tablo']} #{h['kayit_id']})\n\n"
-                         + json.dumps(h["detay_nesne"], ensure_ascii=False, indent=2))
-        else:
-            kutu.insert("1.0", "Detay yok.")
-
-    def gecmis_yenile(self):
-        self.g_agac.delete(*self.g_agac.get_children())
-        self.g_veri.clear()
-        for h in sv.hareket_gecmisi(300):
-            iid = self.g_agac.insert("", "end", values=(
-                h["zaman"], h["islem"], h["tablo"], h["kayit_id"]))
-            self.g_veri[iid] = h
-
     # ============================================================ YEDEK
     def _yedek_kur(self):
         kart = ttk.Frame(self.tab_yedek, style="Panel.TFrame", padding=14)
@@ -1140,643 +823,6 @@ class Uygulama:
             self.y_agac.insert("", "end", values=(
                 y["tur"], os.path.basename(y["ad"]), tarih_yaz(y["zaman"]), okuma))
 
-    # ======================================================= TEDARİKÇİLER
-    def _tedarik_kur(self):
-        ust = ttk.Frame(self.tab_tedarik)
-        ust.pack(fill="x")
-        ttk.Label(ust, text="Ara:").pack(side="left")
-        self.t_ara = tk.StringVar()
-        girdi = ttk.Entry(ust, textvariable=self.t_ara, width=26)
-        girdi.pack(side="left", padx=8)
-        girdi.bind("<KeyRelease>", lambda _e: self.tedarik_yenile())
-
-        dugme = ttk.Frame(self.tab_tedarik)
-        dugme.pack(fill="x", pady=8)
-        for yazi, komut, stil, aciklama in (
-            ("+ Yeni Tedarikçi", self.tedarikci_dlg_yeni, "Altin.TButton",
-             "Mal aldığınız kişiyi/firmayı tanımlarsınız.\n(Bizim borcumuz — cari hesap)"),
-            ("✎ Düzenle", lambda: self._t_semma(self.tedarikci_dlg), None,
-             "Seçili tedarikçinin bilgilerini günceller."),
-            ("Mal Alışı", lambda: self._t_semma(self.alis_dlg), None,
-             "Seçili tedarikçiden yapılan alışı\nborç olarak işler."),
-            ("Ödeme Yap", lambda: self._t_semma(self.tedarik_odeme_dlg), "Yesil.TButton",
-             "Tedarikçiye yaptığınız ödemeyi kaydeder;\nborcu azalır."),
-            ("Ekstre", lambda: self._t_semma(self.tedarik_ekstre_penceresi), None,
-             "Alış-ödeme dökümünü açar\n(Excel olarak kaydedilebilir)."),
-            ("Arşivle / Geri Al", self.tedarik_durum_degistir, None,
-             "Seçili tedarikçiyi arşivler (silinmez)\nveya listeye geri alır."),
-        ):
-            btn = ttk.Button(dugme, text=yazi, style=stil or "TButton", command=komut)
-            btn.pack(side="left", padx=(0, 7))
-            ipucu(btn, aciklama)
-
-        self.t_agac = self._agac(self.tab_tedarik,
-                                 ["Tedarikçi", "Telefon", "Alış Toplamı",
-                                  "Ödeme Toplamı", "Kalan Borcumuz"],
-                                 genislikler=(220, 130, 130, 130, 140),
-                                 sagalar=(2, 3, 4), yuk=14)
-        self.t_secilen: int | None = None
-        self.t_agac.bind("<<TreeviewSelect>>", self._t_sec_degisti)
-
-    def _t_sec_degisti(self, _e=None):
-        sec = self.t_agac.selection()
-        if sec and sec[0].isdigit():
-            self.t_secilen = int(sec[0])
-        else:
-            self.t_secilen = None
-
-    def _t_semma(self, fonks):
-        if self.t_secilen is None:
-            messagebox.showinfo("Seçim yok", "Önce listeden bir tedarikçi seçin.")
-            return
-        fonks(self.t_secilen)
-
-    def tedarik_yenile(self):
-        self.t_agac.delete(*self.t_agac.get_children())
-        for t in sv.tedarikciler(q=self.t_ara.get(), durum="arsiv"):
-            self.t_agac.insert("", "end", iid=str(t["id"]), tags=("soluk",), values=(
-                t["ad"] + "  (arşiv)", t["telefon"], tl(t["alis_toplam"]),
-                tl(t["odeme_toplam"]), tl(t["borc"])))
-        for t in sv.tedarikciler(q=self.t_ara.get()):
-            et = ("gecikmis",) if t["borclu"] else ("ok",)
-            self.t_agac.insert("", "end", iid=str(t["id"]), tags=et, values=(
-                t["ad"], t["telefon"], tl(t["alis_toplam"]),
-                tl(t["odeme_toplam"]), tl(t["borc"])))
-
-    def tedarikci_dlg_yeni(self):
-        self.tedarikci_dlg(None)
-
-    def tedarikci_dlg(self, tid):
-        penc = tk.Toplevel(self.kok)
-        penc.title("Tedarikçi Düzenle" if tid else "Yeni Tedarikçi")
-        penc.configure(bg=PANEL, padx=18, pady=14)
-        penc.transient(self.kok)
-        penc.grab_set()
-        penc.resizable(False, False)
-        t = sv.tedarikci_getir(tid) if tid else None
-        al: dict[str, tk.StringVar] = {}
-        satirlar = [("ad", "Ad *", (t["ad"] if t else "")),
-                    ("telefon", "Telefon", (t["telefon"] if t else "")),
-                    ("notlar", "Not", (t["notlar"] if t else ""))]
-        for i, (k, etiket, varsayilan) in enumerate(satirlar):
-            ttk.Label(penc, text=etiket, style="Panel.TLabel").grid(
-                row=i, column=0, sticky="w", pady=4)
-            al[k] = tk.StringVar(value=str(varsayilan))
-            ttk.Entry(penc, textvariable=al[k], width=38).grid(
-                row=i, column=1, sticky="we", pady=4)
-
-        def kaydet():
-            try:
-                if tid:
-                    sv.tedarikci_duzenle(tid, al["ad"].get(), al["telefon"].get(),
-                                         al["notlar"].get())
-                else:
-                    sv.tedarikci_ekle(al["ad"].get(), al["telefon"].get(),
-                                      al["notlar"].get())
-            except ValueError as hata:
-                messagebox.showwarning("Hata", str(hata), parent=penc)
-                return
-            self.tedarik_yenile()
-            penc.destroy()
-
-        ttk.Button(penc, text="Kaydet", style="Altin.TButton",
-                   command=kaydet).grid(row=len(satirlar), column=0,
-                                        columnspan=2, sticky="we", pady=(10, 0))
-        penc.columnconfigure(1, weight=1)
-
-    def alis_dlg(self, tid):
-        t = sv.tedarikci_getir(tid)
-        penc = tk.Toplevel(self.kok)
-        penc.title(f"Mal Alışı — {t['ad']}")
-        penc.configure(bg=PANEL, padx=18, pady=14)
-        penc.transient(self.kok)
-        penc.grab_set()
-        penc.resizable(False, False)
-        ttk.Label(penc, text=f"Tedarikçi: {t['ad']}   ·   Mevcut borcumuz: "
-                             f"{tl(t['borc'])}", style="Altin.TLabel").pack(anchor="w")
-        al = {"tarih": tk.StringVar(value=date.today().isoformat()),
-              "tutar": tk.StringVar(), "aciklama": tk.StringVar()}
-        for k, etiket in (("tarih", "Tarih (AAAA-AA-GG)"), ("tutar", "Tutar *"),
-                          ("aciklama", "Açıklama")):
-            ttk.Label(penc, text=etiket, style="Panel.TLabel").pack(
-                anchor="w", pady=(8, 0))
-            ttk.Entry(penc, textvariable=al[k], width=30).pack(anchor="w")
-
-        def kaydet():
-            try:
-                sv.alis_ekle(tid, al["tarih"].get() or date.today().isoformat(),
-                             sayi(al["tutar"].get()), al["aciklama"].get())
-            except ValueError as hata:
-                messagebox.showwarning("Hata", str(hata), parent=penc)
-                return
-            penc.destroy()
-            self.tedarik_yenile()
-            messagebox.showinfo("Tamam", "Mal alışı kaydedildi.")
-
-        ttk.Button(penc, text="Alışı Kaydet", style="Altin.TButton",
-                   command=kaydet).pack(fill="x", pady=(12, 0))
-
-    def tedarik_odeme_dlg(self, tid):
-        t = sv.tedarikci_getir(tid)
-        penc = tk.Toplevel(self.kok)
-        penc.title(f"Tedarikçiye Ödeme — {t['ad']}")
-        penc.configure(bg=PANEL, padx=18, pady=14)
-        penc.transient(self.kok)
-        penc.grab_set()
-        penc.resizable(False, False)
-        ttk.Label(penc, text=f"Tedarikçi: {t['ad']}   ·   Borcumuz: {tl(t['borc'])}",
-                  style="Altin.TLabel").pack(anchor="w")
-        al = {"tarih": tk.StringVar(value=date.today().isoformat()),
-              "tutar": tk.StringVar(),
-              "yontem": tk.StringVar(value="nakit"),
-              "aciklama": tk.StringVar()}
-        satirlar = [("tarih", "Tarih (AAAA-AA-GG)", None),
-                    ("tutar", "Tutar *", None),
-                    ("yontem", "Yöntem", ["nakit", "kart", "havale", "cek", "senet"]),
-                    ("aciklama", "Açıklama", None)]
-        for i, (k, etiket, secenekler) in enumerate(satirlar):
-            ttk.Label(penc, text=etiket, style="Panel.TLabel").pack(
-                anchor="w", pady=(8, 0))
-            if secenekler:
-                ttk.Combobox(penc, state="readonly", width=27,
-                             values=secenekler, textvariable=al[k]).pack(anchor="w")
-            else:
-                ttk.Entry(penc, textvariable=al[k], width=30).pack(anchor="w")
-
-        def kaydet():
-            try:
-                sv.tedarik_odeme_ekle(tid, al["tarih"].get() or date.today().isoformat(),
-                                      sayi(al["tutar"].get()), al["yontem"].get(),
-                                      al["aciklama"].get())
-            except ValueError as hata:
-                messagebox.showwarning("Hata", str(hata), parent=penc)
-                return
-            penc.destroy()
-            self.tedarik_yenile()
-            messagebox.showinfo("Tamam", "Ödeme kaydedildi.")
-
-        ttk.Button(penc, text="Ödemeyi Kaydet", style="Yesil.TButton",
-                   command=kaydet).pack(fill="x", pady=(12, 0))
-
-    def tedarik_ekstre_penceresi(self, tid):
-        e = sv.tedarik_ekstre(tid)
-        t = e["tedarikci"]
-        penc = tk.Toplevel(self.kok)
-        penc.title(f"Tedarikçi Ekstresi — {t['ad']}")
-        penc.configure(bg=PANEL, padx=16, pady=12)
-        penc.geometry("820x560")
-        penc.transient(self.kok)
-        metin = tk.Text(penc, bg=PANEL, fg=METIN, insertbackground=METIN,
-                        font=("Consolas", 10), borderwidth=0, wrap="none")
-        metin.pack(side="top", fill="both", expand=True)
-        metin.insert("end", f"TEDARİKÇİ HESAP DÖKÜMÜ — {t['ad']}\n" + CIZI + "\n")
-        metin.insert("end", f"{'Tarih':<11}{'Açıklama':<34}{'Alış (Borç)':>15}"
-                             f"{'Ödeme':>15}{'Bakiye':>14}\n")
-        metin.insert("end", CIZI + "\n")
-        harita: dict[int, dict] = {}
-        for r in e["satirlar"]:
-            no = int(metin.index("end").split(".")[0])
-            harita[no] = r
-            metin.insert("end", f"{tarih_yaz(r['tarih']):<11}"
-                                 f"{(r['aciklama'] or 'mal alışı')[:33]:<34}"
-                                 f"{tl(r['borc']) if r['borc'] else '':>15}"
-                                 f"{tl(r['odeme']) if r['odeme'] else '':>15}"
-                                 f"{tl(r['bakiye']):>14}\n")
-        metin.insert("end", CIZI + "\n")
-        metin.insert("end", f"GÜNCEL BORCUMUZ: {tl(e['bakiye'])}\n")
-
-        def iptal_et():
-            try:
-                no = int(metin.index("sel.first").split(".")[0])
-            except tk.TclError:
-                messagebox.showinfo("Seçim yok", "Önce bir işlem satırı seçin.",
-                                    parent=penc)
-                return
-            r = harita.get(no)
-            if not r:
-                messagebox.showinfo("Uygun değil", "Lütfen bir işlem satırı seçin.",
-                                    parent=penc)
-                return
-            tur = "Mal alışı" if r["tur"] == "alis" else "Ödeme"
-            sebep = simpledialog.askstring("İptal Sebebi", f"{tur} iptal sebebi:",
-                                           parent=penc)
-            if not (sebep or "").strip():
-                return
-            try:
-                if r["tur"] == "alis":
-                    sv.alis_iptal(r["id"], sebep)
-                else:
-                    sv.tedarik_odeme_iptal(r["id"], sebep)
-            except ValueError as hata:
-                messagebox.showwarning("Hata", str(hata), parent=penc)
-                return
-            penc.destroy()
-            self.tedarik_yenile()
-            messagebox.showinfo("Tamam", f"{tur} iptal edildi (kayıt durur).")
-
-        bark = ttk.Frame(penc)
-        bark.pack(side="top", fill="x", pady=(8, 0))
-        ttk.Button(bark, text="İptal Et (seçili satır)", command=iptal_et).pack(side="left")
-        ttk.Button(bark, text="Excel olarak Kaydet", command=lambda: excel_kaydet(
-            self.kok, ["Tarih", "Açıklama", "Alış", "Ödeme", "Bakiye"],
-            [[r["tarih"], r["aciklama"], r["borc"], r["odeme"], r["bakiye"]]
-             for r in e["satirlar"]],
-            f"tedarikci_{t['ad'].replace(' ', '_')}_{date.today().isoformat()}.xlsx"
-        )).pack(side="right")
-
-    def tedarik_durum_degistir(self, tid):
-        t = sv.tedarikci_getir(tid)
-        if not t:
-            return
-        if t["durum"] == "aktif":
-            if messagebox.askyesno("Arşivle", f"'{t['ad']}' arşivlensin mi? (silinmez)"):
-                sv.tedarikci_durum(tid, "arsiv")
-        else:
-            if messagebox.askyesno("Geri Al", f"'{t['ad']}' listeye geri alınsın mı?"):
-                sv.tedarikci_durum(tid, "aktif")
-        self.tedarik_yenile()
-
-    # ======================================================= ÇEK & SENET
-    def _cek_kur(self):
-        ozet = ttk.Frame(self.tab_cek)
-        ozet.pack(fill="x")
-        self.cek_kpi: dict[str, ttk.Label] = {}
-        for anahtar, etiket in (
-            ("cek_adet", "Portföyde Çek (adet)"),
-            ("cek_toplam", "Portföyde Çek (TL)"),
-            ("senet_adet", "Portföyde Senet (adet)"),
-            ("senet_toplam", "Portföyde Senet (TL)"),
-        ):
-            kart = ttk.Frame(ozet, style="Panel.TFrame", padding=(14, 12))
-            kart.pack(side="left", fill="x", expand=True,
-                      padx=(0 if anahtar == "cek_adet" else 8, 0))
-            ttk.Label(kart, text=etiket, style="KpiEtiket.TLabel").pack(anchor="w")
-            self.cek_kpi[anahtar] = ttk.Label(kart, text="—", style="KpiDeger.TLabel")
-            self.cek_kpi[anahtar].pack(anchor="w")
-
-        dugme = ttk.Frame(self.tab_cek)
-        dugme.pack(fill="x", pady=8)
-        btn_ekle = ttk.Button(dugme, text="+ Çek / Senet Ekle", style="Altin.TButton",
-                              command=self.cek_ekle_dlg)
-        btn_ekle.pack(side="left", padx=(0, 7))
-        ipucu(btn_ekle, "Müşteriden alınan çeki/senedi portföye kaydeder.\n"
-                        "Vade tarihi zorunludur.")
-        btn_durum = ttk.Button(dugme, text="Durumu Değiştir", command=self.cek_durum_dlg)
-        btn_durum.pack(side="left", padx=(0, 7))
-        ipucu(btn_durum, "Tahsil edildi / karşı tarafa hamle / karşılıksız / portföye al.\n"
-                         "'Tahsil edildi' seçilirse müşteriye otomatik tahsilat yazılır.")
-
-        filtre = ttk.Frame(self.tab_cek)
-        filtre.pack(fill="x", pady=(0, 4))
-        ttk.Label(filtre, text="Tür:").pack(side="left")
-        self.cek_tur = tk.StringVar(value="hepsi")
-        ttk.Combobox(filtre, state="readonly", width=10, values=["hepsi", "cek", "senet"],
-                     textvariable=self.cek_tur).pack(side="left", padx=(6, 14))
-        ttk.Label(filtre, text="Durum:").pack(side="left")
-        self.cek_durum = tk.StringVar(value="hepsi")
-        ttk.Combobox(filtre, state="readonly", width=22,
-                     values=["hepsi", "Portföyde", "Tahsil Edildi",
-                             "Karşı Tarafa Hamle", "Karşılıksız"],
-                     textvariable=self.cek_durum).pack(side="left", padx=6)
-
-        self.cek_agac = self._agac(self.tab_cek,
-                                   ["Tür", "Müşteri", "Banka", "Belge No", "Tutar",
-                                    "Vade", "Kalan Gün", "Durum"],
-                                   genislikler=(70, 180, 130, 110, 110, 100, 90, 150),
-                                   sagalar=(4, 5), yuk=12)
-        self.cek_agac.bind("<Double-1>", lambda _e: self.cek_durum_dlg())
-        self.cek_yenile()
-
-    def cek_yenile(self):
-        o = sv.cek_portfoy_ozeti()
-        self.cek_kpi["cek_adet"].configure(text=str(o["cek_adet"]))
-        self.cek_kpi["cek_toplam"].configure(text=tl(o["cek_toplam"]))
-        self.cek_kpi["senet_adet"].configure(text=str(o["senet_adet"]))
-        self.cek_kpi["senet_toplam"].configure(text=tl(o["senet_toplam"]))
-
-        self.cek_agac.delete(*self.cek_agac.get_children())
-        tur = "" if self.cek_tur.get() == "hepsi" else self.cek_tur.get()
-        durumlar = {"hepsi": "", "Portföyde": "portfoy", "Tahsil Edildi": "tahsil",
-                    "Karşı Tarafa Hamle": "karsi_hamle", "Karşılıksız": "karsiliksiz"}
-        durum = durumlar.get(self.cek_durum.get(), "")
-        for c in sv.cekler(tur=tur, durum=durum):
-            if c["durum"] == "portfoy" and c["gun_kaldi"] is not None:
-                et = ("gecikmis",) if c["gun_kaldi"] < 0 else (
-                    "pesin",) if c["gun_kaldi"] <= 7 else ()
-            else:
-                et = ("ok",) if c["durum"] == "tahsil" else ("soluk",)
-            kalan = ("—" if c["gun_kaldi"] is None or c["durum"] != "portfoy"
-                     else str(c["gun_kaldi"]))
-            self.cek_agac.insert("", "end", iid=str(c["id"]), tags=et, values=(
-                "Çek" if c["tur"] == "cek" else "Senet", c["musteri_ad"],
-                c["banka"], c["belge_no"], tl(c["tutar"]), tarih_yaz(c["vade"]),
-                kalan, sv.CEK_DURUMLERI[c["durum"]]))
-
-    def cek_ekle_dlg(self):
-        musteriler = sv.musteriler(durum="aktif")
-        if not musteriler:
-            messagebox.showinfo("Müşteri yok", "Önce müşteri tanımlayın.")
-            return
-        penc = tk.Toplevel(self.kok)
-        penc.title("Çek / Senet Ekle")
-        penc.configure(bg=PANEL, padx=18, pady=14)
-        penc.transient(self.kok)
-        penc.grab_set()
-        penc.resizable(False, False)
-        al = {"tur": tk.StringVar(value="cek"),
-              "musteri": tk.StringVar(value=musteriler[0]["ad"]),
-              "banka": tk.StringVar(), "belge_no": tk.StringVar(),
-              "tutar": tk.StringVar(), "tarih": tk.StringVar(value=date.today().isoformat()),
-              "vade": tk.StringVar(), "notlar": tk.StringVar()}
-        harita = {m["ad"]: m["id"] for m in musteriler}
-        satirlar = [("tur", "Tür", ["cek", "senet"]),
-                    ("musteri", "Müşteri *", sorted(harita)),
-                    ("banka", "Banka / Çeken"), ("belge_no", "Belge No"),
-                    ("tutar", "Tutar *"), ("tarih", "Alış Tarihi (AAAA-AA-GG)"),
-                    ("vade", "Vade (AAAA-AA-GG) *"), ("notlar", "Not")]
-        for i, (k, etiket, secenekler) in enumerate(satirlar):
-            ttk.Label(penc, text=etiket, style="Panel.TLabel").grid(
-                row=i, column=0, sticky="w", pady=3)
-            if secenekler:
-                ttk.Combobox(penc, state="readonly", width=26, values=secenekler,
-                             textvariable=al[k]).grid(row=i, column=1, padx=6, pady=3)
-            else:
-                ttk.Entry(penc, textvariable=al[k], width=28).grid(
-                    row=i, column=1, padx=6, pady=3)
-
-        def kaydet():
-            try:
-                sv.cek_ekle(al["tur"].get(), harita.get(al["musteri"].get(), 0),
-                            al["banka"].get(), al["belge_no"].get(),
-                            sayi(al["tutar"].get()), al["tarih"].get(),
-                            al["vade"].get(), al["notlar"].get())
-            except ValueError as hata:
-                messagebox.showwarning("Hata", str(hata), parent=penc)
-                return
-            penc.destroy()
-            self.cek_yenile()
-            messagebox.showinfo("Tamam", "Çek/senet portföye kaydedildi.")
-
-        ttk.Button(penc, text="Kaydet", style="Altin.TButton",
-                   command=kaydet).grid(row=len(satirlar), column=0, columnspan=2,
-                                        sticky="we", pady=(10, 0))
-        penc.columnconfigure(1, weight=1)
-
-    def cek_durum_dlg(self):
-        sec = self.cek_agac.selection()
-        if not sec or not sec[0].isdigit():
-            messagebox.showinfo("Seçim yok", "Önce listeden bir çek/senet seçin.")
-            return
-        cid = int(sec[0])
-        penc = tk.Toplevel(self.kok)
-        penc.title("Durumu Değiştir")
-        penc.configure(bg=PANEL, padx=18, pady=14)
-        penc.transient(self.kok)
-        penc.grab_set()
-        penc.resizable(False, False)
-        ttk.Label(penc, text="Yeni durum:", style="Panel.TLabel").pack(anchor="w")
-        yeni = tk.StringVar(value="Tahsil Edildi")
-        ttk.Combobox(penc, state="readonly", width=24,
-                     values=list(sv.CEK_DURUMLERI.values()),
-                     textvariable=yeni).pack(anchor="w", pady=6)
-        ttk.Label(penc, text="'Tahsil Edildi' seçilirse müşteriye otomatik\n"
-                             "tahsilat kaydı oluşur.", style="Soluk.TLabel",
-                  background=PANEL).pack(anchor="w")
-
-        ters = {v: k for k, v in sv.CEK_DURUMLERI.items()}
-
-        def kaydet():
-            try:
-                sv.cek_durum(cid, ters[yeni.get()])
-            except ValueError as hata:
-                messagebox.showwarning("Hata", str(hata), parent=penc)
-                return
-            penc.destroy()
-            self.cek_yenile()
-            self.panel_yenile()
-            messagebox.showinfo("Tamam", "Durum güncellendi.")
-
-        ttk.Button(penc, text="Kaydet", style="Altin.TButton",
-                   command=kaydet).pack(fill="x", pady=(10, 0))
-
-    # ======================================================= KASA
-    def _kasa_kur(self):
-        filtre = ttk.Frame(self.tab_kasa)
-        filtre.pack(fill="x")
-        bugun_str = date.today().isoformat()
-        ay_basi = bugun_str[:8] + "01"
-        ttk.Label(filtre, text="Başlangıç:").pack(side="left")
-        self.k_bas = tk.StringVar(value=ay_basi)
-        ttk.Entry(filtre, textvariable=self.k_bas, width=12).pack(side="left", padx=6)
-        ttk.Label(filtre, text="Bitiş:").pack(side="left")
-        self.k_bit = tk.StringVar(value=bugun_str)
-        ttk.Entry(filtre, textvariable=self.k_bit, width=12).pack(side="left", padx=6)
-        btn = ttk.Button(filtre, text="Özeti Yenile", command=self.kasa_yenile)
-        btn.pack(side="left", padx=10)
-        ipucu(btn, "Seçilen tarih aralığındaki kasa hareketlerini listeler.")
-
-        self.kasa_kpi: dict[str, ttk.Label] = {}
-        kpi = ttk.Frame(self.tab_kasa)
-        kpi.pack(fill="x", pady=(10, 0))
-        for anahtar, etiket in (("giren", "Giren (TL)"), ("cikan", "Çıkan (TL)"),
-                                ("net", "Net Aralık (TL)"), ("bakiye", "Kasa Bakiyesi")):
-            kart = ttk.Frame(kpi, style="Panel.TFrame", padding=(14, 12))
-            kart.pack(side="left", fill="x", expand=True,
-                      padx=(0 if anahtar == "giren" else 8, 0))
-            ttk.Label(kart, text=etiket, style="KpiEtiket.TLabel").pack(anchor="w")
-            self.kasa_kpi[anahtar] = ttk.Label(kart, text="—", style="KpiDeger.TLabel")
-            self.kasa_kpi[anahtar].pack(anchor="w")
-
-        dugme = ttk.Frame(self.tab_kasa)
-        dugme.pack(fill="x", pady=8)
-        btn_gelir = ttk.Button(dugme, text="+ Gelir", style="Yesil.TButton",
-                               command=lambda: self.kasa_hareket_dlg("gelir"))
-        btn_gelir.pack(side="left", padx=(0, 7))
-        ipucu(btn_gelir, "Kasaya manuel gelir girişi (kira, kasa fazla gibi).")
-        btn_gider = ttk.Button(dugme, text="+ Gider", command=lambda: self.kasa_hareket_dlg("gider"))
-        btn_gider.pack(side="left", padx=(0, 7))
-        ipucu(btn_gider, "Kasadan manuel gider çıkışı (kira, elektrik, maaş gibi).")
-        btn_iptal = ttk.Button(dugme, text="İptal Et (manuel kayıt)", command=self.kasa_iptal_et)
-        btn_iptal.pack(side="left")
-        ipucu(btn_iptal, "Seçili manuel gelir/gideri iptal eder (kayıt silinmez).\n"
-                         "Otomatik tahsilat/peşin kayıtları ekstreden iptal edilir.")
-
-        self.kasa_agac = self._agac(self.tab_kasa,
-                                    ["Tarih", "Kaynak", "Tür", "Kategori",
-                                     "Açıklama", "Tutar", "Bakiye"],
-                                    genislikler=(95, 90, 70, 120, 330, 110, 120),
-                                    sagalar=(5, 6), yuk=13)
-        self.kasa_yenile()
-
-    def kasa_yenile(self):
-        try:
-            v = sv.kasa_rapor(self.k_bas.get() or "2000-01-01",
-                              self.k_bit.get() or "2999-12-31")
-        except Exception:
-            return
-        self.kasa_kpi["giren"].configure(text=tl(v["giren"]))
-        self.kasa_kpi["cikan"].configure(text=tl(v["cikan"]))
-        self.kasa_kpi["net"].configure(text=tl(v["net"]))
-        self.kasa_kpi["bakiye"].configure(text=tl(v["bakiye"]))
-        self.kasa_agac.delete(*self.kasa_agac.get_children())
-        self.kasa_harita: dict[str, dict] = {}
-        for r in reversed(v["satirlar"]):
-            et = ("ok",) if r["tur"] == "gelir" else ("gecikmis",)
-            kaynak = {"tahsilat": "Tahsilat", "pesin": "Peşin Satış",
-                      "manuel": "Manuel"}.get(r["kaynak"], r["kaynak"])
-            iid = self.kasa_agac.insert("", "end", tags=et, values=(
-                tarih_yaz(r["tarih"]), kaynak, "Gelir" if r["tur"] == "gelir" else "Gider",
-                r["kategori"], r["aciklama"], tl(r["tutar"]), tl(r["bakiye"])))
-            self.kasa_harita[iid] = r
-
-    def kasa_hareket_dlg(self, tur: str):
-        penc = tk.Toplevel(self.kok)
-        penc.title("Kasaya Gelir" if tur == "gelir" else "Kasadan Gider")
-        penc.configure(bg=PANEL, padx=18, pady=14)
-        penc.transient(self.kok)
-        penc.grab_set()
-        penc.resizable(False, False)
-        al = {"tarih": tk.StringVar(value=date.today().isoformat()),
-              "tutar": tk.StringVar(),
-              "kategori": tk.StringVar(value="Kira" if tur == "gider" else ""),
-              "aciklama": tk.StringVar()}
-        for k, etiket in (("tarih", "Tarih (AAAA-AA-GG)"), ("tutar", "Tutar *"),
-                          ("kategori", "Kategori (Kira, Elektrik...)"),
-                          ("aciklama", "Açıklama")):
-            ttk.Label(penc, text=etiket, style="Panel.TLabel").pack(
-                anchor="w", pady=(8, 0))
-            ttk.Entry(penc, textvariable=al[k], width=30).pack(anchor="w")
-
-        def kaydet():
-            try:
-                sv.kasa_ekle(al["tarih"].get() or date.today().isoformat(), tur,
-                             sayi(al["tutar"].get()), al["kategori"].get(),
-                             al["aciklama"].get())
-            except ValueError as hata:
-                messagebox.showwarning("Hata", str(hata), parent=penc)
-                return
-            penc.destroy()
-            self.kasa_yenile()
-            self.panel_yenile()
-            messagebox.showinfo("Tamam", "Kasa kaydı yapıldı.")
-
-        ttk.Button(penc, text="Kaydet", style="Altin.TButton",
-                   command=kaydet).pack(fill="x", pady=(12, 0))
-
-    def kasa_iptal_et(self):
-        sec = self.kasa_agac.selection()
-        if not sec:
-            messagebox.showinfo("Seçim yok", "Önce listeden bir kayıt seçin.")
-            return
-        r = self.kasa_harita.get(sec[0])
-        if not r or r["kaynak"] != "manuel":
-            messagebox.showinfo("Otomatik kayıt",
-                                "Tahsilat/peşin satış kayıtları buradan iptal edilmez;\n"
-                                "ilgili müşteri ekstresinden iptal edin.")
-            return
-        sebep = simpledialog.askstring("İptal Sebebi", "İptal sebebi:")
-        if not (sebep or "").strip():
-            return
-        try:
-            sv.kasa_iptal(r["id"], sebep)
-        except ValueError as hata:
-            messagebox.showwarning("Hata", str(hata))
-            return
-        self.kasa_yenile()
-        self.panel_yenile()
-        messagebox.showinfo("Tamam", "Kasa kaydı iptal edildi (kayıt durur).")
-
-    # ======================================================= RAPORLAR
-    def _rapor_kur(self):
-        filtre = ttk.Frame(self.tab_rapor)
-        filtre.pack(fill="x")
-        bugun_str = date.today().isoformat()
-        ay_basi = bugun_str[:8] + "01"
-        ttk.Label(filtre, text="Başlangıç:").pack(side="left")
-        self.r_bas = tk.StringVar(value=ay_basi)
-        ttk.Entry(filtre, textvariable=self.r_bas, width=12).pack(side="left", padx=6)
-        ttk.Label(filtre, text="Bitiş:").pack(side="left")
-        self.r_bit = tk.StringVar(value=bugun_str)
-        ttk.Entry(filtre, textvariable=self.r_bit, width=12).pack(side="left", padx=6)
-        btn = ttk.Button(filtre, text="Özeti Yenile", command=self.rapor_yenile)
-        btn.pack(side="left", padx=10)
-        ipucu(btn, "Seçilen aralıktaki satış-tahsilat özetini hesaplar.")
-        btn_x = ttk.Button(filtre, text="📊 Excel'e Aktar", command=self.rapor_excel_aktar)
-        btn_x.pack(side="left")
-        ipucu(btn_x, "Seçili aralığın özetini ve borçlu listesini Excel olarak kaydeder.")
-
-        self.rapor_kpi: dict[str, ttk.Label] = {}
-        kpi = ttk.Frame(self.tab_rapor)
-        kpi.pack(fill="x", pady=(10, 0))
-        for anahtar, etiket in (("veresiye", "Veresiye Satış (TL)"),
-                                ("tahsilat", "Tahsilat (TL)"),
-                                ("pesin", "Peşin Satış (TL)"),
-                                ("net_kasa", "Kasa Net (TL)")):
-            kart = ttk.Frame(kpi, style="Panel.TFrame", padding=(14, 12))
-            kart.pack(side="left", fill="x", expand=True,
-                      padx=(0 if anahtar == "veresiye" else 8, 0))
-            ttk.Label(kart, text=etiket, style="KpiEtiket.TLabel").pack(anchor="w")
-            self.rapor_kpi[anahtar] = ttk.Label(kart, text="—", style="KpiDeger.TLabel")
-            self.rapor_kpi[anahtar].pack(anchor="w")
-
-        ttk.Label(self.tab_rapor, text="En Borçlular (TL değeri, ilk 15)",
-                  style="Altin.TLabel").pack(anchor="w", pady=(12, 0))
-        self.borclu_agac = self._agac(self.tab_rapor,
-                                      ["Müşteri", "Telefon", "TL Borç", "Altın Borç",
-                                       "Toplam Değer", "Vade Aşımı (gün)", "Telefon"],
-                                      genislikler=(200, 120, 110, 110, 130, 110, 110),
-                                      sagalar=(2, 3, 4, 5), yuk=12)
-        self.rapor_yenile()
-
-    def rapor_yenile(self):
-        bas = self.r_bas.get() or "2000-01-01"
-        bit = self.r_bit.get() or "2999-12-31"
-        satis = [s for s in sv.satislar(baslangic=bas, bitis=bit, sekl="veresiye")]
-        veresiye = sum(float(s["tutar"]) for s in satis if s["para_birimi"] == "tl")
-        tahsilat = 0.0
-        pesin = 0.0
-        try:
-            kasa = sv.kasa_rapor(bas, bit)
-            tahsilat = sum(float(r["tutar"]) for r in kasa["satirlar"]
-                           if r["kaynak"] == "tahsilat")
-            pesin = sum(float(r["tutar"]) for r in kasa["satirlar"]
-                        if r["kaynak"] == "pesin")
-            net = kasa["net"]
-        except Exception:
-            net = 0.0
-        self.rapor_kpi["veresiye"].configure(text=tl(veresiye))
-        self.rapor_kpi["tahsilat"].configure(text=tl(tahsilat))
-        self.rapor_kpi["pesin"].configure(text=tl(pesin))
-        self.rapor_kpi["net_kasa"].configure(text=tl(net))
-
-        self.borclu_agac.delete(*self.borclu_agac.get_children())
-        kur = sv.fiyat_getir()
-        for m in sv.en_borclular(15):
-            deger = float(m["tl_borc"]) + float(m["altin_borc"]) * kur
-            self.borclu_agac.insert("", "end", tags=("gecikmis",) if m["gecikme_gun"] else (),
-                                    values=(m["ad"], m["telefon"], tl(m["tl_borc"]),
-                                            gr(m["altin_borc"]), tl(deger),
-                                            int(m.get("gecikme_gun") or 0),
-                                            m["telefon"]))
-
-    def rapor_excel_aktar(self):
-        bas = self.r_bas.get() or "2000-01-01"
-        bit = self.r_bit.get() or "2999-12-31"
-        kur = sv.fiyat_getir()
-        basliklar = ["Müşteri", "Telefon", "TL Borç", "Altın Borç", "Toplam (TL değeri)",
-                     "Vade Aşımı (gün)", "En Eski Vade"]
-        satirlar = []
-        toplam = 0.0
-        for m in sv.musteriler(durum="aktif", sadece_borclu=True):
-            deger = float(m["tl_borc"]) + float(m["altin_borc"]) * kur
-            toplam += deger
-            satirlar.append([m["ad"], m["telefon"], m["tl_borc"], m["altin_borc"],
-                             round(deger, 2), int(m.get("gecikme_gun") or 0),
-                             m.get("en_eski_vade", "")])
-        satirlar.append(["", "", "", "TOPLAM", round(toplam, 2), "", ""])
-        excel_kaydet(self.kok, basliklar, satirlar,
-                     f"borclu_rapor_{bas}_{bit}.xlsx")
-
     # ===================================================== fiyat penceresi
     def fiyat_penceresi(self):
         penc = tk.Toplevel(self.kok)
@@ -1801,7 +847,6 @@ class Uygulama:
                 messagebox.showwarning("Hata", str(hata), parent=penc)
                 return
             self.panel_yenile()
-            self.urunler_yenile()
             penc.destroy()
 
         ttk.Button(penc, text="Kaydet", style="Altin.TButton", command=kaydet).pack(
@@ -1924,17 +969,25 @@ class Uygulama:
         ttk.Button(dugme, text="Metni Kopyala", command=kopyala).pack(side="left", padx=8)
 
     def musterileri_excel_aktar(self):
-        basliklar = ["Müşteri", "Telefon", "Kategori", "TL Borç", "Altın Borç",
-                     "En Eski Vade", "Vade Aşımı (gün)", "Kredi Limiti",
-                     "Ödeme Sözü", "Durum"]
+        basliklar = ["Müşteri", "Telefon", "TL Borç", "Altın Borç", "Toplam (TL değeri)",
+                     "En Eski Vade", "Vade Aşımı (gün)", "Kredi Limiti", "Durum"]
+        kur = sv.fiyat_getir()
         satirlar = []
+        toplam_tl = toplam_gr = toplam_deger = 0.0
         for m in (sv.musteriler(durum="aktif") + sv.musteriler(durum="arsiv")):
-            satirlar.append([m["ad"], m["telefon"], m.get("kategori", ""),
-                             m["tl_borc"], m["altin_borc"], m.get("en_eski_vade", ""),
+            deger = float(m["tl_borc"]) + float(m["altin_borc"]) * kur
+            toplam_tl += float(m["tl_borc"])
+            toplam_gr += float(m["altin_borc"])
+            toplam_deger += deger
+            satirlar.append([m["ad"], m["telefon"], m["tl_borc"], m["altin_borc"],
+                             round(deger, 2), m.get("en_eski_vade", ""),
                              int(m.get("gecikme_gun") or 0), m["limit_tl"],
-                             m.get("sozu_tarih", ""), m["durum"]])
+                             m["durum"]])
+        satirlar.append(["", "", "", "", "", "", "", "", ""])
+        satirlar.append(["TOPLAM", "", toplam_tl, toplam_gr, round(toplam_deger, 2),
+                         "", "", "", ""])
         excel_kaydet(self.kok, basliklar, satirlar,
-                     f"musteriler_{date.today().isoformat()}.xlsx")
+                     f"borclar_{date.today().isoformat()}.xlsx")
 
     def _ekstre_excel(self, m, e):
         basliklar = ["Tarih", "Açıklama", "Borç", "Tahsilat", "TL Bakiye",
