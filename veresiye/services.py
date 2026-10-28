@@ -639,6 +639,38 @@ def en_borclular(limit: int = 15) -> list[dict]:
     return liste[:limit]
 
 
+def yaslandirma() -> dict:
+    """Vadesi geçen alacakların gün aralıklarına göre dökümü (yaşlandırma).
+
+    TL borçlar esas alınır; altın borç güncel gram fiyatıyla TL'ye çevrilir.
+    """
+    kur = fiyat_getir()
+    kova = {"0-30": 0.0, "31-60": 0.0, "61-90": 0.0, "90+": 0.0}
+    gecikenler: list[dict] = []
+    for m in musteriler(durum="aktif", sadece_borclu=True):
+        gun = int(m.get("gecikme_gun") or 0)
+        if gun <= 0:
+            continue   # vadesi henüz gelmemiş
+        deger = float(m["tl_borc"]) + float(m["altin_borc"]) * kur
+        aralik = ("0-30" if gun <= 30 else
+                  "31-60" if gun <= 60 else
+                  "61-90" if gun <= 90 else "90+")
+        kova[aralik] = round(kova[aralik] + deger, 2)
+        gecikenler.append(m)
+    gecikenler.sort(key=lambda m: -int(m.get("gecikme_gun") or 0))
+    return {"kova": kova, "gecikenler": gecikenler}
+
+
+def tahsilat_orani(ay_sayisi: int = 3) -> float:
+    """Son N ayda veresiye satışlarına karşı tahsilat yüzdesi (TL)."""
+    rapor = rapor_aylik(ay_sayisi)
+    satis = sum(float(r["satis_tl"]) for r in rapor)
+    tahsilat = sum(float(r["tahsilat_tl"]) for r in rapor)
+    if satis <= 0:
+        return 0.0
+    return round(100.0 * tahsilat / satis, 1)
+
+
 def hareket_gecmisi(limit: int = 200) -> list[dict]:
     with db() as conn:
         satirlar = conn.execute(

@@ -9,16 +9,20 @@ EXE üretimi: pyinstaller kuyumcu_masaustu.spec
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import secrets
 import sys
 import tkinter as tk
+import webbrowser
 from datetime import date, datetime
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
 # veresiye paketini bul (script proje kökünde ise doğrudan bulur)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import lisans as ls     # noqa: E402
 from veresiye import backup as vbackup  # noqa: E402
 from veresiye import db as vdb          # noqa: E402
 from veresiye import services as sv     # noqa: E402
@@ -95,8 +99,14 @@ class Uygulama:
         kok.protocol("WM_DELETE_WINDOW", self.kapat)
 
     # ---------------------------------------------------------------- tema #
+    def _baslik(self) -> str:
+        d = ls.durum()
+        if d["lisansli"]:
+            return "HACILAR KUYUMCULUK  ·  Lisanslı"
+        return f"HACILAR KUYUMCULUK  ·  {d['kalan_yazi']}"
+
     def _tema_kur(self):
-        self.kok.title("HACILAR KUYUMCULUK")
+        self.kok.title(self._baslik())
         self.kok.geometry("1180x730")
         self.kok.minsize(1000, 640)
         self.kok.configure(bg=ARKA)
@@ -175,6 +185,10 @@ class Uygulama:
         sag.pack(side="right")
         ttk.Button(sag, text="Gram Fiyatı Güncelle", style="Altin.TButton",
                    command=self.fiyat_penceresi).pack(side="right", padx=6)
+        ttk.Button(sag, text="🔒 PIN Kilidi",
+                   command=self.pin_penceresi).pack(side="right", padx=6)
+        ttk.Button(sag, text="🔑 Lisans",
+                   command=self.lisans_butonu).pack(side="right", padx=6)
 
     # ------------------------------------------------------------ sekmeler #
     def _sekmeler(self):
@@ -256,6 +270,31 @@ class Uygulama:
             self.kpi[anahtar] = ttk.Label(kart, text="—", style="KpiDeger.TLabel")
             self.kpi[anahtar].pack(anchor="w")
 
+        # --- premium: yaşlandırma / tahsilat oranı / risk kartları ----------
+        kpi2 = ttk.Frame(self.tab_panel)
+        kpi2.pack(fill="x", pady=(8, 0))
+        kartlar2 = [
+            ("gecikme", "Vadesi Geçen Toplam (TL değeri)"),
+            ("orani", "Tahsilat Oranı (son 3 ay)"),
+            ("risk", "Yüksek Risk — 90+ Gün (TL değeri)"),
+        ]
+        for anahtar, etiket in kartlar2:
+            kart = ttk.Frame(kpi2, style="Panel.TFrame", padding=(14, 12))
+            kart.pack(side="left", fill="x", expand=True, padx=(0 if anahtar == "gecikme" else 8, 0))
+            ttk.Label(kart, text=etiket, style="KpiEtiket.TLabel").pack(anchor="w")
+            self.kpi[anahtar] = ttk.Label(kart, text="—", style="KpiDeger.TLabel")
+            self.kpi[anahtar].pack(anchor="w")
+
+        # --- premium: 6 aylık veresiye ↔ tahsilat trendi --------------------
+        grafik_kart = ttk.Frame(self.tab_panel, style="Panel.TFrame", padding=(12, 8))
+        grafik_kart.pack(fill="x", pady=(10, 0))
+        ttk.Label(grafik_kart, text="6 Aylık Veresiye ↔ Tahsilat Trendi",
+                  style="Altin.TLabel").pack(anchor="w")
+        self.grafik = tk.Canvas(grafik_kart, bg=PANEL, highlightthickness=0,
+                                height=150, borderwidth=0)
+        self.grafik.pack(fill="x", pady=(4, 0))
+        self.grafik.bind("<Configure>", lambda _e: self._grafik_guncelle())
+
         alt = ttk.Frame(self.tab_panel)
         alt.pack(fill="both", expand=True, pady=(12, 0))
         solv = ttk.Frame(alt)
@@ -291,6 +330,12 @@ class Uygulama:
         self.kpi["tahsil_bugun"].configure(text=tl(v["bugun_tl"]))
         self.kpi["satis_ay"].configure(text=tl(v["ay_satis_tl"]))
 
+        ya = sv.yaslandirma()
+        self.kpi["gecikme"].configure(text=tl(sum(ya["kova"].values())))
+        self.kpi["risk"].configure(text=tl(ya["kova"]["90+"]))
+        self.kpi["orani"].configure(text=f"% {sv.tahsilat_orani(3):.1f}".replace(".", ","))
+        self._grafik_guncelle()
+
         for a in (self.gecikmis_agac, self.soz_agac, self.son_agac):
             a.delete(*a.get_children())
 
@@ -310,6 +355,52 @@ class Uygulama:
             self.son_agac.insert("", "end", tags=("ok",) if h.get("tur", "") != "Satış" else (),
                                  values=(tarih_yaz(h.get("zaman", "")), h.get("tur", ""),
                                          islem[:60], tutar))
+
+    def _grafik_guncelle(self):
+        tuval = getattr(self, "grafik", None)
+        if tuval is None:
+            return
+        tuval.delete("all")
+        try:
+            veri = list(reversed(sv.rapor_aylik(6)))
+        except Exception:
+            return
+        gen = tuval.winfo_width()
+        if gen < 200:
+            gen = 900
+        yuk = 150
+        sol, sag, ust, alt = 52, 12, 16, 26
+        maks = max([r["satis_tl"] for r in veri] + [r["tahsilat_tl"] for r in veri] + [1.0])
+        tuval.create_line(sol, yuk - alt, gen - sag, yuk - alt, fill=CIZGI, width=1)
+
+        def xy(i, deger):
+            x = sol + i * (gen - sol - sag) / max(len(veri) - 1, 1)
+            y = (yuk - alt) - (deger / maks) * (yuk - alt - ust)
+            return x, y
+
+        AY_ADI = ["", "Oca", "Şub", "Mar", "Nis", "May", "Haz",
+                  "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"]
+        for i, r in enumerate(veri):
+            x = xy(i, 0)[0]
+            tuval.create_text(x, yuk - alt + 11, text=AY_ADI[int(r["ay"][5:7])],
+                              fill=SOLUK, font=("Segoe UI", 8))
+        for dizi, renk in (([r["satis_tl"] for r in veri], ALTIN),
+                           ([r["tahsilat_tl"] for r in veri], YESIL)):
+            noktalar = []
+            for i, deger in enumerate(dizi):
+                noktalar += xy(i, deger)
+            if len(noktalar) >= 4:
+                tuval.create_line(*noktalar, fill=renk, width=2, smooth=True)
+            for i, deger in enumerate(dizi):
+                x, y = xy(i, deger)
+                tuval.create_oval(x - 3, y - 3, x + 3, y + 3, fill=renk, outline="")
+        # gölge çizelge
+        tuval.create_rectangle(sol + 2, 4, sol + 12, 14, fill=ALTIN, outline="")
+        tuval.create_text(sol + 17, 9, text="Veresiye satış", fill=METIN,
+                          font=("Segoe UI", 8), anchor="w")
+        tuval.create_rectangle(sol + 110, 4, sol + 120, 14, fill=YESIL, outline="")
+        tuval.create_text(sol + 125, 9, text="Tahsilat", fill=METIN,
+                          font=("Segoe UI", 8), anchor="w")
 
     # ========================================================= MÜŞTERİLER
     def _musteriler_kur(self):
@@ -332,22 +423,27 @@ class Uygulama:
             ("Satış Ekle", lambda: self._m_semma(self.satis_dlg), None),
             ("Tahsilat Al", lambda: self._m_semma(self.tahsilat_dlg), "Yesil.TButton"),
             ("Ekstre", lambda: self._m_semma(self.ekstre_penceresi), None),
+            ("📱 WhatsApp Hatırlatma", lambda: self._m_semma(self.whatsapp_dlg), None),
+            ("📊 Excel'e Aktar", self.musterileri_excel_aktar, None),
             ("Arşivle / Geri Al", self.musteri_durum_degistir, None),
         ):
             ttk.Button(dugme, text=yazi,
                        style=stil or "TButton", command=komut).pack(side="left", padx=(0, 7))
 
-        kolonlar = ["ad", "telefon", "kategori", "sozu", "tl_borc", "altin_borc", "limit"]
+        kolonlar = ["ad", "telefon", "kategori", "sozu", "tl_borc", "altin_borc",
+                    "gecikme", "limit"]
         basliklar = {"ad": "Müşteri", "telefon": "Telefon", "kategori": "Kategori",
                      "sozu": "Ödeme Sözü", "tl_borc": "TL Borç",
-                     "altin_borc": "Altın Borç", "limit": "Limit"}
-        genislikler = {"ad": 190, "telefon": 115, "kategori": 85, "sozu": 150,
-                       "tl_borc": 95, "altin_borc": 95, "limit": 90}
+                     "altin_borc": "Altın Borç", "gecikme": "Vade Aşımı (gün)",
+                     "limit": "Limit"}
+        genislikler = {"ad": 180, "telefon": 110, "kategori": 80, "sozu": 140,
+                       "tl_borc": 90, "altin_borc": 90, "gecikme": 105, "limit": 85}
         self.m_agac = ttk.Treeview(self.tab_musteriler, columns=kolonlar, show="headings")
         for k in kolonlar:
             self.m_agac.heading(k, text=basliklar[k])
             self.m_agac.column(k, width=genislikler[k],
-                               anchor="e" if k in ("tl_borc", "altin_borc", "limit") else "w")
+                               anchor="e" if k in ("tl_borc", "altin_borc",
+                                                   "gecikme", "limit") else "w")
         kay = ttk.Scrollbar(self.tab_musteriler, orient="vertical",
                             command=self.m_agac.yview)
         self.m_agac.configure(yscrollcommand=kay.set)
@@ -381,16 +477,19 @@ class Uygulama:
         self.m_agac.delete(*self.m_agac.get_children())
         arsiv = sv.musteriler(q=q, durum="arsiv")
         for m in sv.musteriler(q=q, sadece_borclu=self.m_borclu.get()):
+            gun = int(m.get("gecikme_gun") or 0)
             et = ("borc",) if m["borclu"] else ()
+            if gun > 0:
+                et = et + ("gecikmis",)
             soz = (tarih_yaz(m["sozu_tarih"]) + " " + (m.get("sozu_not") or "")[:18]).strip()
             self.m_agac.insert("", "end", iid=str(m["id"]), tags=et, values=(
                 m["ad"], m["telefon"], m.get("kategori", ""), soz,
-                tl(m["tl_borc"]), gr(m["altin_borc"]), tl(m["limit_tl"])))
+                tl(m["tl_borc"]), gr(m["altin_borc"]), gun, tl(m["limit_tl"])))
         for m in arsiv:
             soz = (tarih_yaz(m["sozu_tarih"]) + " " + (m.get("sozu_not") or "")[:18]).strip()
             self.m_agac.insert("", "end", iid=str(m["id"]), tags=("arsiv",), values=(
                 m["ad"] + "  (arşiv)", m["telefon"], m.get("kategori", ""), soz,
-                tl(m["tl_borc"]), gr(m["altin_borc"]), tl(m["limit_tl"])))
+                tl(m["tl_borc"]), gr(m["altin_borc"]), 0, tl(m["limit_tl"])))
 
     def musteri_dlg_yeni(self):
         self._musteri_dlg(None)
@@ -733,6 +832,8 @@ class Uygulama:
                    command=lambda: self.tahsilat_dlg(mid)).pack(side="left")
         ttk.Button(bark, text="TXT olarak Kaydet",
                    command=lambda: self._ekstre_kaydet(m, metin)).pack(side="right")
+        ttk.Button(bark, text="Excel olarak Kaydet",
+                   command=lambda: self._ekstre_excel(m, e)).pack(side="right", padx=(0, 6))
 
     def _ekstre_kaydet(self, m, metin: tk.Text):
         dosya = filedialog.asksaveasfilename(
@@ -970,10 +1071,339 @@ class Uygulama:
         ttk.Button(penc, text="Kaydet", style="Altin.TButton", command=kaydet).pack(
             fill="x", pady=(10, 0))
 
+    # ============================================== premium: lisans & pin & WhatsApp
+    def lisans_butonu(self):
+        d = ls.durum()
+        if d["lisansli"]:
+            messagebox.showinfo("Lisans", "Program lisanslıdır. Teşekkürler!")
+            return
+        if lisans_penceresi(self.kok, zorunlu=False):
+            self.kok.title(self._baslik())
+            messagebox.showinfo("Lisans", "Etkinleştirme başarılı. Teşekkürler!")
+
+    def pin_penceresi(self):
+        tuz, mevcut_hash = pin_bilgisi()
+        penc = tk.Toplevel(self.kok)
+        penc.title("PIN Kilidi")
+        penc.configure(bg=PANEL, padx=18, pady=14)
+        penc.transient(self.kok)
+        penc.grab_set()
+        penc.resizable(False, False)
+        suru = " (kilit şu an AÇIK)" if mevcut_hash else " (kilit şu an KAPALI)"
+        ttk.Label(penc, text="PIN Kilidi" + suru, style="Altin.TLabel").pack(anchor="w")
+        alan: dict[str, tk.StringVar] = {}
+        satirlar = []
+        if mevcut_hash:
+            satirlar.append(("mevcut", "Mevcut PIN *"))
+        satirlar += [("yeni", "Yeni PIN (4-8 haneli) *"),
+                     ("tekrar", "Yeni PIN (tekrar) *")]
+        for i, (k, etiket) in enumerate(satirlar):
+            ttk.Label(penc, text=etiket, style="Panel.TLabel").pack(anchor="w", pady=(8, 0))
+            alan[k] = tk.StringVar()
+            ttk.Entry(penc, textvariable=alan[k], show="•", width=14).pack(anchor="w")
+
+        def kaydet():
+            if mevcut_hash:
+                if hashlib.sha256(
+                        (tuz + alan["mevcut"].get().strip()).encode("utf-8")
+                ).hexdigest() != mevcut_hash:
+                    messagebox.showwarning("Hata", "Mevcut PIN hatalı.", parent=penc)
+                    return
+            yeni = alan["yeni"].get().strip()
+            if not (4 <= len(yeni) <= 8) or not yeni.isdigit():
+                messagebox.showwarning("Hata", "Yeni PIN 4-8 haneli rakam olmalı.",
+                                       parent=penc)
+                return
+            if yeni != alan["tekrar"].get().strip():
+                messagebox.showwarning("Hata", "PIN'ler eşleşmiyor.", parent=penc)
+                return
+            pin_yaz(yeni)
+            penc.destroy()
+            messagebox.showinfo("Tamam", "PIN kilidi ayarlandı. Bir sonraki açılışta "
+                                         "soranacak.")
+
+        def kaldir():
+            if not mevcut_hash:
+                return
+            if hashlib.sha256(
+                    (tuz + alan["mevcut"].get().strip()).encode("utf-8")
+            ).hexdigest() != mevcut_hash:
+                messagebox.showwarning("Hata", "Mevcut PIN hatalı.", parent=penc)
+                return
+            with sv.db() as conn:
+                sv.ayar_yaz(conn, "pin_tuz", "")
+                sv.ayar_yaz(conn, "pin_hash", "")
+            penc.destroy()
+            messagebox.showinfo("Tamam", "PIN kilidi kaldırıldı.")
+
+        dugme = ttk.Frame(penc)
+        dugme.pack(fill="x", pady=(12, 0))
+        ttk.Button(dugme, text="Kaydet", style="Altin.TButton", command=kaydet).pack(side="left")
+        if mevcut_hash:
+            ttk.Button(dugme, text="Kilidi Kaldır", command=kaldir).pack(side="left", padx=8)
+
+    def whatsapp_dlg(self, mid):
+        m = sv.musteri_getir(mid)
+        tel = tel_99(m.get("telefon", ""))
+        gun = int(m.get("gecikme_gun") or 0)
+        parcalar = [f"Sayın {m['ad']},",
+                    f"{dukkan_adi()} hesabınızda güncel borç:",
+                    f"  {tl(m['tl_borc'])}  +  {gr(m['altin_borc'])}"]
+        if m.get("en_eski_vade"):
+            ek = f" ({gun} gün aşım)" if gun else ""
+            parcalar.append(f"En eski işlem vadesi: {tarih_yaz(m['en_eski_vade'])}{ek}")
+        parcalar.append("Ödemenizi yaptıysanız bu mesajı dikkate almayın. "
+                        "Bilginize teşekkürler.")
+        metin = "\n".join(parcalar)
+
+        penc = tk.Toplevel(self.kok)
+        penc.title(f"WhatsApp Hatırlatma — {m['ad']}")
+        penc.configure(bg=PANEL, padx=16, pady=12)
+        penc.transient(self.kok)
+        penc.grab_set()
+        kutu = tk.Text(penc, width=58, height=9, bg=PANEL2, fg=METIN, borderwidth=0,
+                       font=("Segoe UI", 10), wrap="word")
+        kutu.pack(fill="both", expand=True)
+        kutu.insert("1.0", metin)
+        durum = ttk.Label(penc, text=("Telefon: " + (m.get("telefon") or "— YOK —") +
+                                      ("" if tel else "   (numara eksik, WhatsApp açılamaz)")),
+                          style="Soluk.TLabel", background=PANEL)
+        durum.pack(anchor="w", pady=(6, 0))
+
+        dugme = ttk.Frame(penc)
+        dugme.pack(fill="x", pady=(8, 0))
+
+        def ac():
+            from urllib.parse import quote
+            webbrowser.open(f"https://wa.me/{tel}?text={quote(metin)}")
+
+        ttk.Button(dugme, text="📱 WhatsApp'ta Aç", style="Yesil.TButton", command=ac,
+                   state=("normal" if tel else "disabled")).pack(side="left")
+
+        def kopyala():
+            self.kok.clipboard_clear()
+            self.kok.clipboard_append(metin)
+            durum.configure(text="Mesaj panoya kopyalandı.")
+
+        ttk.Button(dugme, text="Metni Kopyala", command=kopyala).pack(side="left", padx=8)
+
+    def musterileri_excel_aktar(self):
+        basliklar = ["Müşteri", "Telefon", "Kategori", "TL Borç", "Altın Borç",
+                     "En Eski Vade", "Vade Aşımı (gün)", "Kredi Limiti",
+                     "Ödeme Sözü", "Durum"]
+        satirlar = []
+        for m in (sv.musteriler(durum="aktif") + sv.musteriler(durum="arsiv")):
+            satirlar.append([m["ad"], m["telefon"], m.get("kategori", ""),
+                             m["tl_borc"], m["altin_borc"], m.get("en_eski_vade", ""),
+                             int(m.get("gecikme_gun") or 0), m["limit_tl"],
+                             m.get("sozu_tarih", ""), m["durum"]])
+        excel_kaydet(self.kok, basliklar, satirlar,
+                     f"musteriler_{date.today().isoformat()}.xlsx")
+
+    def _ekstre_excel(self, m, e):
+        basliklar = ["Tarih", "Açıklama", "Borç", "Tahsilat", "TL Bakiye",
+                     "Altın Bakiye"]
+        satirlar = [[r["tarih"], r["aciklama"], r["borc"], r["tahsilat"],
+                     r["tl_bakiye"], r["altin_bakiye"]] for r in e["satirlar"]]
+        b = e["bakiye"]
+        satirlar.append(["", "GÜNCEL BAKİYE", "", "", b["tl_borc"], b["altin_borc"]])
+        excel_kaydet(self.kok, basliklar, satirlar,
+                     f"ekstre_{m['ad'].replace(' ', '_')}_{date.today().isoformat()}.xlsx")
+
     # ================================================================ kapat
     def kapat(self):
         self.yedekci.durdur()
         self.kok.destroy()
+
+
+# --------------------------------------------------------------------------- #
+# Yardımcılar: telefon / dükkan adı / PIN / Excel
+# --------------------------------------------------------------------------- #
+def tel_99(tel: str) -> str:
+    """Telefonu WhatsApp (wa.me) biçimine çevirir: 0532... → 90532..."""
+    d = "".join(ch for ch in (tel or "") if ch.isdigit())
+    if d.startswith("0"):
+        d = "90" + d[1:]
+    elif len(d) == 10 and not d.startswith("90"):
+        d = "90" + d
+    return d if len(d) >= 10 else ""
+
+
+def dukkan_adi() -> str:
+    try:
+        conn = vdb.baglanti()
+        satir = conn.execute("SELECT deger FROM ayarlar WHERE anahtar='dukkan_adi'").fetchone()
+        conn.close()
+        if satir and str(satir[0]).strip():
+            return str(satir[0])
+    except Exception:
+        pass
+    return "HACILAR KUYUMCULUK"
+
+
+def pin_bilgisi() -> tuple[str, str]:
+    try:
+        conn = vdb.baglanti()
+        satirlar = conn.execute(
+            "SELECT anahtar, deger FROM ayarlar WHERE anahtar IN ('pin_tuz','pin_hash')"
+        ).fetchall()
+        conn.close()
+        d = {r[0]: str(r[1]) for r in satirlar}
+        return d.get("pin_tuz", ""), d.get("pin_hash", "")
+    except Exception:
+        return "", ""
+
+
+def pin_yaz(pin: str) -> None:
+    tuz = secrets.token_hex(16)
+    h = hashlib.sha256((tuz + pin).encode("utf-8")).hexdigest()
+    try:
+        conn = vdb.baglanti()
+        for k, v in (("pin_tuz", tuz), ("pin_hash", h)):
+            conn.execute("INSERT INTO ayarlar(anahtar, deger) VALUES (?, ?) "
+                         "ON CONFLICT(anahtar) DO UPDATE SET deger=excluded.deger",
+                         (k, v))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
+def pin_sor(kok: tk.Tk) -> bool:
+    """PIN ayarlıysa açılışta sorar; 3 hakte kapanır. PIN yoksa doğrudan geçer."""
+    tuz, h = pin_bilgisi()
+    if not h:
+        return True
+    penc = tk.Toplevel(kok)
+    penc.title("PIN Kilidi")
+    penc.configure(bg=ARKA, padx=20, pady=16)
+    penc.resizable(False, False)
+    penc.grab_set()
+    tk.Label(penc, text="🔒 HACILAR KUYUMCULUK", bg=ARKA, fg=ALTIN,
+             font=("Segoe UI", 12, "bold")).pack(anchor="w")
+    tk.Label(penc, text="Programı açmak için PIN girin.", bg=ARKA, fg=SOLUK).pack(
+        anchor="w", pady=(2, 8))
+    girdi = tk.StringVar()
+    alan = tk.Entry(penc, textvariable=girdi, show="•", width=16,
+                    bg=PANEL2, fg=METIN, insertbackground=METIN, borderwidth=0)
+    alan.pack(anchor="w", ipady=4, padx=(0, 8))
+    bilgi = tk.Label(penc, text="", bg=ARKA, fg=SOLUK)
+    bilgi.pack(anchor="w", pady=(6, 0))
+    sonuc = [False]
+    hak = [3]
+
+    def dene():
+        pin = girdi.get().strip()
+        if hashlib.sha256((tuz + pin).encode("utf-8")).hexdigest() == h:
+            sonuc[0] = True
+            penc.destroy()
+            return
+        hak[0] -= 1
+        if hak[0] <= 0:
+            penc.destroy()
+            return
+        bilgi.configure(text=f"PIN hatalı — {hak[0]} hakkınız kaldı.", fg=KIRMIZI)
+        girdi.set("")
+        alan.focus_set()
+
+    tk.Button(penc, text="Aç", bg=ALTIN, fg="14161A", borderwidth=0,
+              activebackground=ALTIN_ACIK, font=("Segoe UI", 9, "bold"),
+              command=dene).pack(anchor="w", pady=(10, 0))
+    alan.bind("<Return>", lambda _e: dene())
+    alan.focus_set()
+    penc.wait_window()
+    return sonuc[0]
+
+
+def excel_kaydet(kok, basliklar, satirlar, onerilen) -> None:
+    """Listeyi .xlsx (openpyxl) ya da CSV olarak kaydeder."""
+    dosya = filedialog.asksaveasfilename(
+        defaultextension=".xlsx", parent=kok, initialfile=onerilen,
+        filetypes=[("Excel çalışma kitabı", "*.xlsx"), ("CSV (Excel uyumlu)", "*.csv")])
+    if not dosya:
+        return
+    try:
+        if dosya.lower().endswith(".csv"):
+            import csv
+            with open(dosya, "w", encoding="utf-8-sig", newline="") as f:
+                yaz = csv.writer(f)
+                yaz.writerow(basliklar)
+                yaz.writerows(satirlar)
+        else:
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, PatternFill
+            wb = Workbook()
+            sayfa = wb.active
+            sayfa.title = "Rapor"
+            sayfa.append(list(basliklar))
+            for s in satirlar:
+                sayfa.append(list(s))
+            for hucre in sayfa[1]:
+                hucre.font = Font(bold=True, color="14161A")
+                hucre.fill = PatternFill("solid", fgColor="D4AF37")
+            for i in range(1, len(basliklar) + 1):
+                hucreler = [len(str(basliklar[i - 1]))] + [
+                    len(str(satir[i - 1])) for satir in satirlar[:60]]
+                sayfa.column_dimensions[sayfa.cell(row=1, column=i).column_letter].width = \
+                    min(max(hucreler) + 4, 44)
+            sayfa.freeze_panes = "A2"
+            wb.save(dosya)
+        messagebox.showinfo("Kaydedildi", "Dosya kaydedildi:\n" + dosya, parent=kok)
+    except Exception as hata:
+        messagebox.showwarning("Hata", f"Dosya yazılamadı:\n{hata}", parent=kok)
+
+
+def lisans_penceresi(kok: tk.Tk, zorunlu: bool) -> bool:
+    """Anahtar etkinleştirme penceresi. Geçerli anahtar → True."""
+    if zorunlu:
+        kok.withdraw()
+    penc = tk.Toplevel(kok)
+    penc.title("Lisans Etkinleştirme — HACILAR KUYUMCULUK")
+    penc.configure(bg=ARKA, padx=24, pady=18)
+    penc.resizable(False, False)
+    penc.grab_set()
+    d = ls.durum()
+    tk.Label(penc, text="◆ HACILAR KUYUMCULUK", bg=ARKA, fg=ALTIN,
+             font=("Segoe UI", 13, "bold")).pack(anchor="w")
+    if d["lisansli"]:
+        durum_metni = "Program lisanslı. Teşekkürler!"
+    elif d["demo_aktif"]:
+        durum_metni = f"Demo sürüm: {d['kalan_yazi']}. İsterseniz şimdi anahtar girebilirsiniz."
+    else:
+        durum_metni = "Demo süresi doldu. Devam etmek için lisans anahtarı gerekli."
+    tk.Label(penc, text=durum_metni, bg=ARKA, fg=METIN, justify="left").pack(
+        anchor="w", pady=(4, 10))
+    if d["not"]:
+        tk.Label(penc, text=d["not"], bg=ARKA, fg=UYARI).pack(anchor="w")
+    girdi = tk.StringVar()
+    alan = tk.Entry(penc, textvariable=girdi, width=32, font=("Consolas", 11),
+                    bg=PANEL2, fg=METIN, insertbackground=METIN, borderwidth=0)
+    alan.pack(anchor="w", ipady=5, pady=(0, 4))
+    tk.Label(penc, text="Örnek: HACILAR-ABCDE-FGHJK-LMNPR-STUVX", bg=ARKA,
+             fg=SOLUK).pack(anchor="w")
+    hata = tk.Label(penc, text="", bg=ARKA, fg=SOLUK)
+    hata.pack(anchor="w", pady=(4, 0))
+    sonuc = [False]
+
+    def etkinlestir():
+        if ls.etkinlestir(girdi.get()):
+            sonuc[0] = True
+            penc.destroy()
+        else:
+            hata.configure(text="Geçersiz anahtar. Kontrol edip tekrar deneyin.",
+                           fg=KIRMIZI)
+
+    dugme = ttk.Frame(penc)
+    dugme.pack(fill="x", pady=(12, 0))
+    ttk.Button(dugme, text="Etkinleştir", style="Altin.TButton",
+               command=etkinlestir).pack(side="left")
+    alan.bind("<Return>", lambda _e: etkinlestir())
+    if not zorunlu:
+        ttk.Button(dugme, text="Kapat", command=penc.destroy).pack(side="left", padx=8)
+    tk.Label(penc, text=ls.BAYI_METNI, bg=ARKA, fg=SOLUK).pack(anchor="w", pady=(10, 0))
+    alan.focus_set()
+    penc.wait_window()
+    return sonuc[0]
 
 
 def main():
@@ -989,7 +1419,23 @@ def main():
         conn.close()
     except Exception:
         pass
+
+    # --- demo / lisans kapısı ------------------------------------------- #
+    ls.calistir()
+    d = ls.durum()
     kok = tk.Tk()
+    kok.withdraw()
+    while not d["tam_erisim"]:
+        basarili = lisans_penceresi(kok, zorunlu=True)
+        d = ls.durum()
+        if not basarili and not d["tam_erisim"]:
+            kok.destroy()
+            return
+    # --- PIN kilidi ------------------------------------------------------ #
+    if not pin_sor(kok):
+        kok.destroy()
+        return
+    kok.deiconify()
     Uygulama(kok)
     kok.mainloop()
 
