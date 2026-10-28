@@ -248,12 +248,18 @@ class Uygulama:
         sol = ttk.Frame(ust, style="Panel.TFrame")
         sol.pack(side="left")
         ttk.Label(sol, text="◆ HACILAR KUYUMCULUK", style="Baslik.TLabel").pack(anchor="w")
-        self.selam_etiketi = ttk.Label(sol, text="", style="Soluk.TLabel",
-                                       background=PANEL, font=("Segoe UI", 10))
-        self.selam_etiketi.pack(anchor="w")
+        selam_satiri = ttk.Frame(sol, style="Panel.TFrame")
+        selam_satiri.pack(anchor="w", pady=(3, 0))
+        self.selam_soz_etiketi = tk.Label(selam_satiri, text="", bg=ALTIN,
+                                          fg="#14161a", font=("Segoe UI", 10, "bold"),
+                                          padx=10, pady=3)
+        self.selam_soz_etiketi.pack(side="left")
+        self.selam_ad_etiketi = tk.Label(selam_satiri, text="", bg=PANEL, fg=ALTIN,
+                                         font=("Segoe UI", 13, "bold"))
+        self.selam_ad_etiketi.pack(side="left", padx=(9, 0))
         self._selam_yaz()
         self.fiyat_etiketi = ttk.Label(sol, text="", style="Soluk.TLabel", background=PANEL)
-        self.fiyat_etiketi.pack(anchor="w")
+        self.fiyat_etiketi.pack(anchor="w", pady=(3, 0))
 
         sag = ttk.Frame(ust, style="Panel.TFrame")
         sag.pack(side="right")
@@ -274,7 +280,8 @@ class Uygulama:
     # --------------------------------------------- selamlama + alt bilgi bar #
     def _selam_yaz(self):
         ikon, soz = selamlama()
-        self.selam_etiketi.configure(text=f"{ikon} {soz}, {SAHIBI}")
+        self.selam_soz_etiketi.configure(text=f"{ikon} {soz}")
+        self.selam_ad_etiketi.configure(text=SAHIBI)
 
     def _selam_dongu(self):
         """PC saati değiştikçe selamı tazeler (her vakit için doğru karşılama)."""
