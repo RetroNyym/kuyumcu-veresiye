@@ -96,10 +96,20 @@ class Uygulama:
 
     # ---------------------------------------------------------------- tema #
     def _tema_kur(self):
-        self.kok.title("Kuyumcu Veresiye Premium — Masaüstü")
+        self.kok.title("HACILAR KUYUMCULUK")
         self.kok.geometry("1180x730")
         self.kok.minsize(1000, 640)
         self.kok.configure(bg=ARKA)
+
+        # pencere simgesi (exe içine gömülü logo)
+        simge = os.path.join(getattr(sys, "_MEIPASS",
+                                      os.path.dirname(os.path.abspath(__file__))),
+                             "hacilar.ico")
+        if os.path.exists(simge):
+            try:
+                self.kok.iconbitmap(simge)
+            except Exception:
+                pass
 
         st = ttk.Style(self.kok)
         st.theme_use("clam")
@@ -157,7 +167,7 @@ class Uygulama:
 
         sol = ttk.Frame(ust, style="Panel.TFrame")
         sol.pack(side="left")
-        ttk.Label(sol, text="◆ Kuyumcu Veresiye Premium", style="Baslik.TLabel").pack(anchor="w")
+        ttk.Label(sol, text="◆ HACILAR KUYUMCULUK", style="Baslik.TLabel").pack(anchor="w")
         self.fiyat_etiketi = ttk.Label(sol, text="", style="Soluk.TLabel", background=PANEL)
         self.fiyat_etiketi.pack(anchor="w")
 
@@ -968,6 +978,17 @@ class Uygulama:
 
 def main():
     vdb.init_db()   # veritabanı yoksa oluştur (web sürümü olmadan da çalışsın)
+    try:            # eski varsayılan adı taşıyan DB'leri yeni markaya geçir
+        conn = vdb.baglanti()
+        satir = conn.execute(
+            "SELECT deger FROM ayarlar WHERE anahtar='dukkan_adi'").fetchone()
+        if satir and str(satir[0]).strip() in ("", "Kuyumcu"):
+            conn.execute("UPDATE ayarlar SET deger='HACILAR KUYUMCULUK' "
+                         "WHERE anahtar='dukkan_adi'")
+            conn.commit()
+        conn.close()
+    except Exception:
+        pass
     kok = tk.Tk()
     Uygulama(kok)
     kok.mainloop()

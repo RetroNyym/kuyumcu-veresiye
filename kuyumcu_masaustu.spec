@@ -1,8 +1,8 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec — masaüstü (tkinter) tek dosya exe üretmek için:
+"""PyInstaller spec — HACILAR KUYUMCULUK masaüstü (tkinter) tek dosya exe:
     pyinstaller kuyumcu_masaustu.spec
 
-Çıktı: dist\KuyumcuVeresiyeMasaustu.exe
+Çıktı: dist\HacilarKuyumculuk.exe
 Veritabanı ve yedekler exe'nin yanında oluşur (web sürümüyle paylaşılabilir).
 """
 
@@ -16,7 +16,7 @@ a = Analysis(
     [os.path.join(koku, "masaustu.py")],
     pathex=[koku],
     binaries=[],
-    datas=[],
+    datas=[(os.path.join(koku, "hacilar.ico"), ".")],
     hiddenimports=["tkinter", "tkinter.filedialog", "tkinter.messagebox",
                    "tkinter.simpledialog", "tkinter.ttk"],
     hookspath=[],
@@ -38,7 +38,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name="KuyumcuVeresiyeMasaustu",
+    name="HacilarKuyumculuk",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -51,5 +51,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,
+    icon=os.path.join(koku, "hacilar.ico"),
 )

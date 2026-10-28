@@ -248,7 +248,7 @@ def init_db() -> None:
         conn.executescript(SCHEMA)
         _migrasyon(conn)
         varsayilan = {
-            "dukkan_adi": "Kuyumcu",
+            "dukkan_adi": "HACILAR KUYUMCULUK",
             "gram_fiyat": "0",
             "vade_gun": "30",
             "pin_hash": "",          # boş = PIN kilidi kapalı
