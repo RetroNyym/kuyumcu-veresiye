@@ -84,6 +84,20 @@ def tarih_yaz(iso) -> str:
 
 CIZI = "-" * 94
 
+SAHIBI = "Mehmet Avkıran"          # program sahibi — alt bar ve selamlamada görünür
+
+
+def selamlama(saat: int | None = None) -> tuple[str, str]:
+    """PC saatine göre selam: her vakit için uygun karşılama."""
+    saat = datetime.now().hour if saat is None else saat
+    if 5 <= saat < 12:
+        return "☀️", "Günaydın"
+    if 12 <= saat < 17:
+        return "🌤️", "Tünaydın"
+    if 17 <= saat < 22:
+        return "🌆", "İyi akşamlar"
+    return "🌙", "İyi geceler"
+
 
 # --------------------------------------------------------------------------- #
 # İpucu (tooltip): düğme/alan üstünde küçük açıklama penceresi
@@ -137,8 +151,16 @@ class Uygulama:
         self.secili_musteri: int | None = None
         self._tema_kur()
         self._ust_serit()
+        # program sahibi alt bilgi çubuğu (pencerenin en altında)
+        alt = ttk.Frame(self.kok, style="Panel.TFrame", padding=(18, 6))
+        alt.pack(side="bottom", fill="x")
+        ttk.Label(alt, text=f"© {datetime.now().year} {SAHIBI} · HACILAR KUYUMCULUK",
+                  style="Soluk.TLabel", background=PANEL).pack(side="left")
+        ttk.Label(alt, text="Veresiye Takibi", style="Soluk.TLabel",
+                  background=PANEL).pack(side="right")
         self._sekmeler()
         self.panel_yenile()
+        self._selam_dongu()
         self.yedekci.baslat()
         kok.protocol("WM_DELETE_WINDOW", self.kapat)
 
@@ -226,6 +248,10 @@ class Uygulama:
         sol = ttk.Frame(ust, style="Panel.TFrame")
         sol.pack(side="left")
         ttk.Label(sol, text="◆ HACILAR KUYUMCULUK", style="Baslik.TLabel").pack(anchor="w")
+        self.selam_etiketi = ttk.Label(sol, text="", style="Soluk.TLabel",
+                                       background=PANEL, font=("Segoe UI", 10))
+        self.selam_etiketi.pack(anchor="w")
+        self._selam_yaz()
         self.fiyat_etiketi = ttk.Label(sol, text="", style="Soluk.TLabel", background=PANEL)
         self.fiyat_etiketi.pack(anchor="w")
 
@@ -244,6 +270,16 @@ class Uygulama:
         btn_lisans.pack(side="right", padx=6)
         ipucu(btn_lisans, "Demo durumunu gösterir.\n"
                           "Lisans anahtarınız varsa buradan girersiniz.")
+
+    # --------------------------------------------- selamlama + alt bilgi bar #
+    def _selam_yaz(self):
+        ikon, soz = selamlama()
+        self.selam_etiketi.configure(text=f"{ikon} {soz}, {SAHIBI}")
+
+    def _selam_dongu(self):
+        """PC saati değiştikçe selamı tazeler (her vakit için doğru karşılama)."""
+        self._selam_yaz()
+        self.kok.after(60_000, self._selam_dongu)
 
     # ------------------------------------------------------------ sekmeler #
     def _sekmeler(self):

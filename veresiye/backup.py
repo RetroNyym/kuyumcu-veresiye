@@ -1,8 +1,11 @@
-"""Otomatik yedekleme: saatlik, günlük ve aylık.
+"""Otomatik yedekleme: saatlik, günlük ve aylık — PC saatiyle hizalı.
 
 - Yedekler SQLite'ın güvenli `backup()` API'si ile alınır (çalışan veritabanının
   tutarlı anlık görüntüsü; WAL dahil).
 - Arka planda tek bir daemon iş parçacığı her 60 saniyede bir kontrol eder.
+- Zamanlama BİLGİSAYAR SAATİNE göre yapılır: saatlik yedek her tam saatte,
+  günlük yedek her günün ilk açılışında (o gün alınmadıysa), aylık yedek her
+  ayın ilk açılışında (o ay alınmadıysa) alınır.
 - Uygulama kapalıysa kaçırılan yedekler, açılışta tamamlanır.
 - Geri yükleme ÖNCESİ mevcut veritabanı otomatik olarak "on-yukleme" yedeğine
   kopyalanır; veri kaybı yaşanmaz.
@@ -86,13 +89,14 @@ class YedekYoneticisi:
                     conn.commit()
 
                 son_saatlik = oku("son_saatlik")
+                # PC saatinin tam saatine hizalı: her takvim saatinde bir yedek
+                saat_anahtari = simdi.strftime("%Y-%m-%d %H")
                 gerekli_saatlik = (
-                    not son_saatlik
-                    or (simdi - datetime.fromisoformat(son_saatlik)).total_seconds() >= 3600
+                    not son_saatlik or son_saatlik != saat_anahtari
                 )
                 if gerekli_saatlik:
                     self.yedekle("saatlik")
-                    yaz("son_saatlik", simdi.isoformat(timespec="seconds"))
+                    yaz("son_saatlik", saat_anahtari)
                     yapilan.append("saatlik")
 
                 bugun = simdi.strftime("%Y-%m-%d")
