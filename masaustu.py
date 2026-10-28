@@ -1343,8 +1343,11 @@ def guncelleme_penceresi(kok: tk.Tk, bilgi: dict) -> None:
             ilerleme_cubugu.configure(value=100)
             durum.configure(text="Yükleniyor… program yeniden açılacak.", fg=YESIL)
             try:
-                gu.uygula(os.path.join(os.environ.get("TEMP", os.path.expanduser("~")),
-                                       "hacilar_guncelleme", gu.EXE_ADI))
+                yeni_exe_yolu = os.path.join(
+                    os.environ.get("TEMP", os.path.expanduser("~")),
+                    "hacilar_guncelleme", gu.EXE_ADI)
+                gu.kurulum_yaz(bilgi["surum"])   # döngü koruması
+                gu.uygula(yeni_exe_yolu)
             except Exception as hata:
                 durum.configure(text="Uygulanamadı: " + str(hata), fg=KIRMIZI)
                 btn.configure(text="🔁 Tekrar Dene", state="normal")

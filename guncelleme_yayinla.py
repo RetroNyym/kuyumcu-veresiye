@@ -33,6 +33,9 @@ def main() -> None:
     print("=" * 62)
     print("   HACILAR KUYUMCULUK — GÜNCELLEME YAYINLAMA (bayi)")
     print("=" * 62)
+    print("   HATIRLATMA: Yeni exe'yi derlemeden önce guncelleme.py içindeki")
+    print("   SURUM değerini artırın (ör. \"1.1.0\"), sonra pyinstaller kuyumcu_masaustu.spec")
+    print("=" * 62)
 
     surum = arg("--surum", "Yeni sürüm numarası (ör. 1.1.0): ")
     if not surum:

@@ -26,6 +26,37 @@ EXE_ADI = "HacilarKuyumculuk.exe"
 ZAMAN_ASIMI = 8                        # saniye
 
 
+def _reg():
+    try:
+        import winreg
+        return winreg.CreateKey(winreg.HKEY_CURRENT_USER,
+                                r"Software\HacilarKuyumculuk")
+    except Exception:
+        return None
+
+
+def kurulum_yaz(surum: str) -> None:
+    """İndirilen sürümün yüklendiğini işaretler (güncelleme döngüsünü kırar)."""
+    k = _reg()
+    if k is not None:
+        try:
+            import winreg
+            winreg.SetValueEx(k, "KuruluSurum", 0, winreg.REG_SZ, surum)
+        except OSError:
+            pass
+
+
+def kurulum_oku() -> str:
+    k = _reg()
+    if k is None:
+        return ""
+    try:
+        import winreg
+        return str(winreg.QueryValueEx(k, "KuruluSurum")[0] or "")
+    except OSError:
+        return ""
+
+
 # --------------------------------------------------------------------------- #
 # Sürüm karşılaştırma (1.2.10 > 1.2.9 gibi)
 # --------------------------------------------------------------------------- #
@@ -82,7 +113,11 @@ def en_yeni_surum() -> dict | None:
 def kontrol() -> dict | None:
     """Yeni sürüm varsa bilgini döndürür; yoksa/hata ise None."""
     bilgi = en_yeni_surum()
-    if bilgi and surum_yeni_mi(bilgi["surum"], SURUM):
+    if not bilgi:
+        return None
+    if bilgi["surum"] == kurulum_oku():
+        return None   # bu yayın zaten bu makineye kurulmuş
+    if surum_yeni_mi(bilgi["surum"], SURUM):
         return bilgi
     return None
 
