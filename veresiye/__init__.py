@@ -4,11 +4,15 @@ from __future__ import annotations
 import os
 import secrets
 
-from flask import Flask, redirect, url_for
+try:  # masaüstü sürümünde flask paketlenmez; yalnızca web için gerekli
+    from flask import Flask, redirect, url_for
+
+    from . import views
+except ImportError:  # pragma: no cover
+    Flask = None
 
 from . import backup as backup_mod
 from . import db as dbmod
-from . import views
 
 
 def _gizli_anahtar(kok: str) -> str:
@@ -26,6 +30,8 @@ def _gizli_anahtar(kok: str) -> str:
 
 
 def create_app(port: int = 8765) -> Flask:
+    if Flask is None:
+        raise RuntimeError("Flask kurulu değil; web sürümü için: pip install flask")
     kok = dbmod.proje_koku()          # veri kökü (db, yedekler, anahtar)
     paket = dbmod.paket_koku()        # şablon/statik kökü
     dbmod.init_db()

@@ -20,6 +20,7 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from veresiye import backup as vbackup  # noqa: E402
+from veresiye import db as vdb          # noqa: E402
 from veresiye import services as sv     # noqa: E402
 
 # --------------------------------------------------------------------------- #
@@ -966,6 +967,7 @@ class Uygulama:
 
 
 def main():
+    vdb.init_db()   # veritabanı yoksa oluştur (web sürümü olmadan da çalışsın)
     kok = tk.Tk()
     Uygulama(kok)
     kok.mainloop()
