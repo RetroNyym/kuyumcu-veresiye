@@ -16,6 +16,7 @@ import json
 import os
 import secrets
 import sys
+import threading
 import tkinter as tk
 import webbrowser
 from datetime import date, datetime
@@ -24,6 +25,7 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 # veresiye paketini bul (script proje kökünde ise doğrudan bulur)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import guncelleme as gu  # noqa: E402
 import lisans as ls     # noqa: E402
 from veresiye import backup as vbackup  # noqa: E402
 from veresiye import db as vdb          # noqa: E402
@@ -156,7 +158,7 @@ class Uygulama:
         alt.pack(side="bottom", fill="x")
         ttk.Label(alt, text=f"© {datetime.now().year} {SAHIBI} · HACILAR KUYUMCULUK",
                   style="Soluk.TLabel", background=PANEL).pack(side="left")
-        ttk.Label(alt, text="Veresiye Takibi", style="Soluk.TLabel",
+        ttk.Label(alt, text=f"Veresiye Takibi · Sürüm {gu.SURUM}", style="Soluk.TLabel",
                   background=PANEL).pack(side="right")
         self._sekmeler()
         self.panel_yenile()
@@ -276,6 +278,10 @@ class Uygulama:
         btn_lisans.pack(side="right", padx=6)
         ipucu(btn_lisans, "Demo durumunu gösterir.\n"
                           "Lisans anahtarınız varsa buradan girersiniz.")
+        btn_guncelle = ttk.Button(sag, text="🔄 Güncelle", command=self.guncelleme_butonu)
+        btn_guncelle.pack(side="right", padx=6)
+        ipucu(btn_guncelle, "Yeni sürüm var mı diye kontrol eder.\n"
+                            "Yeni sürüm varsa otomatik yüklenir.")
 
     # --------------------------------------------- selamlama + alt bilgi bar #
     def _selam_yaz(self):
@@ -896,6 +902,13 @@ class Uygulama:
             fill="x", pady=(10, 0))
 
     # ============================================== premium: lisans & pin & WhatsApp
+    def guncelleme_butonu(self):
+        yeni = gu.kontrol()
+        if not yeni:
+            messagebox.showinfo("Güncelleme", f"Program güncel. Sürüm {gu.SURUM}")
+            return
+        guncelleme_penceresi(self.kok, yeni)
+
     def lisans_butonu(self):
         d = ls.durum()
         if d["lisansli"]:
@@ -1238,6 +1251,122 @@ def lisans_penceresi(kok: tk.Tk, zorunlu: bool) -> bool:
     return sonuc[0]
 
 
+# --------------------------------------------------------------------------- #
+# Uzaktan güncelleme (mecburi): pencere + arka plan indirme
+# --------------------------------------------------------------------------- #
+def guncelleme_kontrol_splash(kok: tk.Tk) -> dict | None:
+    """Açılışta 'Güncellemeler kontrol ediliyor...' gösterir; yeni sürüm varsa bilgini döndürür."""
+    penc = tk.Toplevel(kok)
+    penc.title("HACILAR KUYUMCULUK")
+    penc.configure(bg=ARKA, padx=28, pady=18)
+    penc.resizable(False, False)
+    tk.Label(penc, text="◆ HACILAR KUYUMCULUK", bg=ARKA, fg=ALTIN,
+             font=("Segoe UI", 12, "bold")).pack(anchor="w")
+    tk.Label(penc, text="Güncellemeler kontrol ediliyor…", bg=ARKA, fg=METIN).pack(
+        anchor="w", pady=(6, 0))
+    sonuc: list = [None]
+
+    def is_parcacigi():
+        sonuc[0] = gu.kontrol()
+
+    t = threading.Thread(target=is_parcalasi, daemon=True)
+    t.start()
+    t.join(12)
+    try:
+        penc.destroy()
+    except tk.TclError:
+        pass
+    return sonuc[0]
+
+
+def guncelleme_penceresi(kok: tk.Tk, bilgi: dict) -> None:
+    """MECBURİ güncelleme penceresi: indirir, uygular, programı yeniden açar."""
+    penc = tk.Toplevel(kok)
+    penc.title("Zorunlu Güncelleme — HACILAR KUYUMCULUK")
+    penc.configure(bg=ARKA, padx=28, pady=20)
+    penc.resizable(False, False)
+    penc.grab_set()
+    penc.protocol("WM_DELETE_WINDOW", lambda: None)   # kapatılamaz
+
+    tk.Label(penc, text="🔄 Yeni sürüm var", bg=ARKA, fg=ALTIN,
+             font=("Segoe UI", 14, "bold")).pack(anchor="w")
+    tk.Label(penc, text=f"Kurulu sürüm: {gu.SURUM}   →   Yeni sürüm: "
+                        f"{bilgi['surum']}\nKullanmaya devam etmek için güncelleme "
+                        "ZORUNLUDUR.", bg=ARKA, fg=METIN, justify="left").pack(
+        anchor="w", pady=(6, 0))
+    if bilgi.get("notlar"):
+        kutu = tk.Text(penc, width=58, height=5, bg=PANEL2, fg=METIN, borderwidth=0,
+                       font=("Segoe UI", 9), wrap="word")
+        kutu.insert("1.0", bilgi["notlar"])
+        kutu.configure(state="disabled")
+        kutu.pack(anchor="w", pady=(8, 0))
+
+    durum = tk.Label(penc, text="İnternet bağlantısı gerekir.", bg=ARKA, fg=SOLUK,
+                     justify="left")
+    durum.pack(anchor="w", pady=(10, 0))
+    ilerleme_cubugu = ttk.Progressbar(penc, mode="determinate", maximum=100, length=380)
+    ilerleme_cubugu.pack(anchor="w", pady=(6, 0))
+    sayac = [0.0, 0.0]          # [alinan_mb, toplam_mb]
+    bitis = ["beklemede"]       # beklemede / tamam / hata
+    hata_metni = [""]
+
+    def ilerleme_alindi(alinan: int, toplam: int):
+        sayac[0] = alinan / (1024 * 1024)
+        sayac[1] = toplam / (1024 * 1024)
+
+    def is_parcacigi():
+        try:
+            hedef = os.path.join(os.environ.get("TEMP", os.path.expanduser("~")),
+                                 "hacilar_guncelleme", gu.EXE_ADI)
+            gu.indir(bilgi["exe_url"], hedef, ilerleme_alindi)
+            if not gu.dogrula(hedef, bilgi.get("boyut") or 0):
+                raise RuntimeError("İndirilen dosya doğrulanamadı, tekrar deneyin.")
+            bitis[0] = "tamam"
+        except Exception as hata:
+            hata_metni[0] = str(hata)
+            bitis[0] = "hata"
+
+    def gosterge_tazele():
+        if sayac[1]:
+            ilerleme_cubugu.configure(value=100.0 * sayac[0] / sayac[1])
+            durum.configure(text=f"İndiriliyor… {sayac[0]:.1f} MB / {sayac[1]:.1f} MB")
+        else:
+            ilerleme_cubugu.configure(value=5)
+            durum.configure(text=f"İndiriliyor… {sayac[0]:.1f} MB")
+        if bitis[0] == "beklemede":
+            penc.after(120, gosterge_tazele)
+        elif bitis[0] == "hata":
+            ilerleme_cubugu.configure(value=0)
+            durum.configure(text="Hata: " + hata_metni[0], fg=KIRMIZI)
+            btn.configure(text="🔁 Tekrar Dene", state="normal")
+        else:
+            ilerleme_cubugu.configure(value=100)
+            durum.configure(text="Yükleniyor… program yeniden açılacak.", fg=YESIL)
+            try:
+                gu.uygula(os.path.join(os.environ.get("TEMP", os.path.expanduser("~")),
+                                       "hacilar_guncelleme", gu.EXE_ADI))
+            except Exception as hata:
+                durum.configure(text="Uygulanamadı: " + str(hata), fg=KIRMIZI)
+                btn.configure(text="🔁 Tekrar Dene", state="normal")
+                return
+            penc.after(800, kok.destroy)   # bat 4 sn bekleyip yeniden başlatır
+
+    def baslat():
+        btn.configure(state="disabled", text="⬇ İndiriliyor…")
+        bitis[0] = "beklemede"
+        hata_metni[0] = ""
+        t = threading.Thread(target=is_parcacigi, daemon=True)
+        t.start()
+        gosterge_tazele()
+
+    btn = tk.Button(penc, text="⬇ Şimdi Güncelle", bg=ALTIN, fg="#14161a",
+                    activebackground=ALTIN_ACIK, borderwidth=0, pady=8,
+                    font=("Segoe UI", 11, "bold"), command=baslat)
+    btn.pack(fill="x", pady=(14, 0))
+    tk.Label(penc, text="Program yalnızca güncelleme ile kullanılabilir.",
+             bg=ARKA, fg=SOLUK).pack(anchor="w", pady=(8, 0))
+
+
 def main():
     vdb.init_db()   # veritabanı yoksa oluştur (web sürümü olmadan da çalışsın)
     try:            # eski varsayılan adı taşıyan DB'leri yeni markaya geçir
@@ -1252,11 +1381,18 @@ def main():
     except Exception:
         pass
 
+    # --- uzaktan güncelleme (mecburi) ------------------------------------ #
+    kok = tk.Tk()
+    kok.withdraw()
+    yeni_surum = guncelleme_kontrol_splash(kok)
+    if yeni_surum:
+        guncelleme_penceresi(kok, yeni_surum)
+        kok.destroy()
+        return   # bat dosyası programı yeni sürümle yeniden başlatır
+
     # --- demo / lisans kapısı ------------------------------------------- #
     ls.calistir()
     d = ls.durum()
-    kok = tk.Tk()
-    kok.withdraw()
     while not d["tam_erisim"]:
         basarili = lisans_penceresi(kok, zorunlu=True)
         d = ls.durum()
