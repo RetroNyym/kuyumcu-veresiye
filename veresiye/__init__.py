@@ -51,6 +51,7 @@ def create_app(port: int = 8765) -> Flask:
 
     yy = backup_mod.YedekYoneticisi()
     app.extensions["yedek"] = yy
+    app.extensions["db_sagligi"] = dbmod.saglik_kontrol()
 
     @app.route("/favicon.ico")
     def _favicon():

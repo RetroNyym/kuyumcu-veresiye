@@ -25,8 +25,9 @@ from . import db as dbmod
 SAATLIK_SAKLA = 72      # 3 gün
 GUNLUK_SAKLA = 120      # 4 ay
 AYLIK_SAKLA = 24        # 2 yıl
-MANUEL_SAKLA = 30
-ON_SAKLA = 10
+MANUEL_SAKLA = None     # elle alınan yedekler asla otomatik silinmez
+ON_SAKLA = 30
+UYARI_SURESI = 2 * 60 * 60   # bu süreden eski son başarılı yedek uyarı üretir
 
 KLASOR_SAKLA = {
     "saatlik": SAATLIK_SAKLA,
@@ -61,15 +62,66 @@ class YedekYoneticisi:
 
     def _dongu(self) -> None:
         # Açılışta kaçırılan yedekleri tamamla
+        self._kontrol_guvenli()
+        while not self._durdur.wait(60):
+            self._kontrol_guvenli()
+
+    def _kontrol_guvenli(self) -> None:
+        """Hata uygulamayı düşürmez; ama sessiz de kalmaz (günlük + arayüz uyarısı)."""
         try:
             self.kontrol_et()
+        except Exception as e:
+            self._hata_bildir(str(e))
+
+    def _hata_bildir(self, mesaj: str) -> None:
+        zaman = dbmod.simdi()
+        self._gunluge_yaz(f"HATA: {mesaj}")
+        try:
+            conn = dbmod.baglanti()
+            try:
+                self._ayar_yaz(conn, "son_yedek_hata", f"{zaman} {mesaj}")
+                conn.commit()
+            finally:
+                conn.close()
         except Exception:
             pass
-        while not self._durdur.wait(60):
-            try:
-                self.kontrol_et()
-            except Exception:
-                pass  # yedekleme hatası uygulamayı düşürmez
+
+    def _gunluge_yaz(self, mesaj: str) -> None:
+        try:
+            os.makedirs(self.yedek_koku, exist_ok=True)
+            with open(os.path.join(self.yedek_koku, "yedek_gunlugu.txt"), "a",
+                      encoding="utf-8") as f:
+                f.write(f"{dbmod.simdi()}  {mesaj}\n")
+        except OSError:
+            pass
+
+    @staticmethod
+    def _ayar_yaz(conn, anahtar: str, deger: str) -> None:
+        conn.execute(
+            "INSERT INTO ayarlar(anahtar, deger) VALUES (?,?) "
+            "ON CONFLICT(anahtar) DO UPDATE SET deger=excluded.deger", (anahtar, deger))
+
+    def uyari(self) -> str:
+        """Yedekleme sağlığı: boşsa sorun yok, değilse arayüzde gösterilecek metin."""
+        conn = dbmod.baglanti()
+        try:
+            def oku(k: str) -> str:
+                r = conn.execute("SELECT deger FROM ayarlar WHERE anahtar=?", (k,)).fetchone()
+                return str(r["deger"]) if r else ""
+            hata, son = oku("son_yedek_hata"), oku("son_basarili_yedek")
+        finally:
+            conn.close()
+        if hata:
+            return f"Son yedekleme sorunlu: {hata}"
+        if not son:
+            return "Henüz başarılı yedek alınmadı."
+        try:
+            t = datetime.strptime(son, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            return "Son yedek zamanı okunamadı."
+        if (datetime.now() - t).total_seconds() > UYARI_SURESI:
+            return f"Son başarılı yedek {son} — 2 saatten eski, kontrol edin."
+        return ""
 
     def kontrol_et(self) -> list[dict]:
         """Saatlik/günlük/aylık yedek zamanı geldi mi bakar; gerekiyorsa alır."""
@@ -167,13 +219,31 @@ class YedekYoneticisi:
                 "INSERT INTO yedekler(dosya, tur, boyut, zaman, sonuc) VALUES (?,?,?,?,?)",
                 (hedef, tur, boyut, kayit_zamani, "tamam"),
             )
+            self._ayar_yaz(conn, "son_basarili_yedek", kayit_zamani)
+            self._ayar_yaz(conn, "son_yedek_hata", "")
+            ikinci = conn.execute(
+                "SELECT deger FROM ayarlar WHERE anahtar='ikinci_yedek_klasor'").fetchone()
             conn.commit()
         finally:
             conn.close()
 
         self._don(durum=KLASOR_SAKLA[tur], klasor=klasor)
 
+        if ikinci and str(ikinci[0]).strip():
+            self._ikinci_kopya(hedef, tur, str(ikinci[0]).strip())
+
         return {"dosya": hedef, "tur": tur, "boyut": boyut, "zaman": kayit_zamani}
+
+    def _ikinci_kopya(self, hedef: str, tur: str, kok: str) -> None:
+        """Yedeği ikinci bir konuma (harici disk, bulut klasörü vb.) kopyalar.
+        Başarısızlık ana yedeği etkilemez, uyarı olarak bildirilir."""
+        try:
+            klasor = os.path.join(kok, tur)
+            os.makedirs(klasor, exist_ok=True)
+            shutil.copy2(hedef, os.path.join(klasor, os.path.basename(hedef)))
+            self._don(durum=KLASOR_SAKLA[tur], klasor=klasor)
+        except Exception as e:
+            self._hata_bildir(f"ikinci kopya alınamadı ({kok}): {e}")
 
     # ------------------------------------------------------------------ #
     # Geri yükleme
@@ -254,8 +324,10 @@ class YedekYoneticisi:
             conn.close()
 
     @staticmethod
-    def _don(durum: int, klasor: str) -> None:
+    def _don(durum: int | None, klasor: str) -> None:
         """Eski yedekleri (sayısal sınırlar içinde) temizler — sadece yedek dosyaları."""
+        if durum is None:
+            return
         try:
             dosyalar = [
                 os.path.join(klasor, ad) for ad in os.listdir(klasor)

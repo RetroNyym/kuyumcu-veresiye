@@ -141,6 +141,15 @@
     </header>
 
     <main class="icerik">
+      {% if yedek_uyari %}
+        <div class="mesajlar">
+          <div class="mesaj hata">
+            <svg class="ic"><use href="#i-uyari"/></svg>
+            <strong>Veri güvenliği uyarısı:</strong> {{ yedek_uyari }}
+            <a href="{{ url_for('views.yedek_sayfasi') }}">Yedek &amp; Güvenlik</a>
+          </div>
+        </div>
+      {% endif %}
       {% with mesajlar = get_flashed_messages(with_categories=true) %}
         {% if mesajlar %}
           <div class="mesajlar">

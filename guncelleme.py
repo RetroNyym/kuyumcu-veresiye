@@ -130,7 +130,7 @@ def en_yeni_surum() -> dict | None:
     boyut = 0
     for varlik in veri.get("assets", []):
         if str(varlik.get("name", "")).lower() == EXE_ADI.lower():
-            exe_url = varlik.get("browser_download_url", "")
+            exe_url = varlik.get("url", "") or varlik.get("browser_download_url", "")
             boyut = int(varlik.get("size") or 0)
             break
     if not exe_url:
@@ -159,11 +159,27 @@ def kontrol() -> dict | None:
 # --------------------------------------------------------------------------- #
 # İndirme + kendini değiştirme
 # --------------------------------------------------------------------------- #
+class _YetkisizYonlendirme(urllib.request.HTTPRedirectHandler):
+    """GitHub, özel depo varlığını imzalı bir depolama adresine yönlendirir.
+    Yetki başlığı bu üçüncü taraf sunucuya gönderilmez."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        yeni = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if yeni is not None:
+            yeni.headers.pop("Authorization", None)
+            yeni.unredirected_hdrs.pop("Authorization", None)
+        return yeni
+
+
 def indir(url: str, hedef: str, ilerleme=None) -> str:
     """Exe'yi indirir; boyut kontrolü yapar; hedef yolunu döndürür."""
     os.makedirs(os.path.dirname(hedef), exist_ok=True)
-    istek = urllib.request.Request(url, headers=_basliklar())
-    with urllib.request.urlopen(istek, timeout=120) as cevap:
+    basliklar = _basliklar()
+    if "api.github.com" in url:
+        basliklar["Accept"] = "application/octet-stream"
+    istek = urllib.request.Request(url, headers=basliklar)
+    acici = urllib.request.build_opener(_YetkisizYonlendirme)
+    with acici.open(istek, timeout=120) as cevap:
         toplam = int(cevap.headers.get("Content-Length") or 0) or 0
         alinan = 0
         blok = 64 * 1024
@@ -201,6 +217,8 @@ def uygula(yeni_dosya: str) -> None:
                              else __file__)
     if not getattr(sys, "frozen", False):
         raise RuntimeError("Kaynak koddan çalışırken güncelleme uygulanmaz.")
+    if any(c in mevcut + yeni_dosya for c in '"%^&|<>!'):
+        raise RuntimeError("Program yolunda güncellemeyi engelleyen karakter var.")
     bat_yolu = os.path.join(os.environ.get("TEMP", os.path.expanduser("~")),
                             "hacilar_guncelle.bat")
     icerik = f"""@echo off

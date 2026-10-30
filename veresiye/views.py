@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import io
 import json
 import os
 import secrets
+import time
 from datetime import date, datetime, timedelta
 
 from flask import (Blueprint, abort, current_app, flash, redirect, render_template,
@@ -63,10 +65,15 @@ def tl_kisa(v: float) -> str:
     return f"{s} ₺"
 
 
+def _guvenli_yol(hedef: str) -> bool:
+    """Yalnızca uygulama içi göreli yollara (açık yönlendirmeye karşı) izin verir."""
+    return hedef.startswith("/") and not hedef.startswith(("//", "/\\"))
+
+
 def _geri_nereye() -> str:
     """Formdaki `geri` alanına güvenli şekilde dön."""
     hedef = request.form.get("geri", "")
-    if hedef.startswith("/") and not hedef.startswith("//"):
+    if _guvenli_yol(hedef):
         return hedef
     return request.referrer or url_for("views.panel")
 
@@ -142,11 +149,27 @@ def _baglam():
         "lan_ip": _lan_ip(),
         "port": current_app.config.get("PORT", 8765),
         "yedek_durum": durum,
+        "yedek_uyari": _yedek_uyari(),
         "dukkan": _ayar("dukkan_adi", "Kuyumcu"),
         "gram_simdi": sv.fiyat_getir(),
         "bugun_tarih": date.today().isoformat(),
         "pin_var": bool(_ayar("pin_hash", "")),
     }
+
+
+def _yedek_uyari() -> str:
+    mesajlar = []
+    saglik = current_app.extensions.get("db_sagligi", "ok")
+    if saglik != "ok":
+        mesajlar.append(f"Veritabanı bütünlük kontrolü başarısız ({saglik}). "
+                        "Lütfen bir yedeği geri yükleyin veya destek alın.")
+    try:
+        u = _yedek_yoneticisi().uyari()
+    except Exception as e:
+        u = f"Yedek durumu okunamadı: {e}"
+    if u:
+        mesajlar.append(u)
+    return " · ".join(mesajlar)
 
 
 def _ayar(anahtar: str, varsayilan: str = "") -> str:
@@ -163,9 +186,24 @@ def _ayar(anahtar: str, varsayilan: str = "") -> str:
 def _pin_kontrol(pin: str) -> bool:
     tuz = _ayar("pin_tuz", "")
     k = _ayar("pin_hash", "")
-    if not k or not tuz:
+    if not k:
         return True
-    return hashlib.sha256((tuz + pin).encode("utf-8")).hexdigest() == k
+    if not tuz:
+        return False
+    return hmac.compare_digest(hashlib.sha256((tuz + pin).encode("utf-8")).hexdigest(), k)
+
+
+_GIRIS_DENEMELERI: dict[str, list[float]] = {}
+GIRIS_HAK = 5
+GIRIS_KILIT_SANIYE = 300
+
+
+def _giris_kilitli() -> bool:
+    ip = request.remote_addr or ""
+    simdi = time.time()
+    denemeler = [t for t in _GIRIS_DENEMELERI.get(ip, []) if simdi - t < GIRIS_KILIT_SANIYE]
+    _GIRIS_DENEMELERI[ip] = denemeler
+    return len(denemeler) >= GIRIS_HAK
 
 
 @bp.before_request
@@ -186,15 +224,21 @@ def _koruma():
 @bp.route("/giris", methods=["GET", "POST"])
 def giris():
     if request.method == "POST":
+        if _giris_kilitli():
+            flash(f"Çok fazla hatalı deneme. {GIRIS_KILIT_SANIYE // 60} dakika sonra tekrar deneyin.",
+                  "hata")
+            return render_template("giris.html", default_pin=True), 429
         pin = request.form.get("pin", "")
         if _pin_kontrol(pin):
+            _GIRIS_DENEMELERI.pop(request.remote_addr or "", None)
             session.permanent = bool(request.form.get("hatirla"))
             session["giris"] = True
             hedef = request.args.get("lutfen") or url_for("views.panel")
-            if not hedef.startswith("/"):
+            if not _guvenli_yol(hedef):
                 hedef = url_for("views.panel")
             flash("Hoş geldiniz.", "basari")
             return redirect(hedef)
+        _GIRIS_DENEMELERI.setdefault(request.remote_addr or "", []).append(time.time())
         flash("PIN hatalı. Tekrar deneyin.", "hata")
     if session.get("giris") or not _ayar("pin_hash", ""):
         return redirect(url_for("views.panel"))
@@ -550,7 +594,8 @@ def yedek_json():
 @bp.route("/ayarlar", methods=["GET"])
 def ayarlar():
     return render_template("ayarlar.html", sayfa="ayarlar",
-                           fiyatlar=sv.fiyat_gecmisi(30))
+                           fiyatlar=sv.fiyat_gecmisi(30),
+                           ikinci_yedek=_ayar("ikinci_yedek_klasor", ""))
 
 
 @bp.route("/ayarlar", methods=["POST"])
@@ -565,11 +610,27 @@ def ayarlar_kaydet():
             if vade:
                 sv.ayar_yaz(conn, "vade_gun", str(max(0, int(vade))))
 
+            ikinci = request.form.get("ikinci_yedek_klasor")
+            if ikinci is not None:
+                ikinci = ikinci.strip()
+                if ikinci:
+                    ikinci = os.path.abspath(ikinci)
+                    try:
+                        os.makedirs(ikinci, exist_ok=True)
+                    except OSError as e:
+                        raise ValueError(f"İkinci yedek klasörü oluşturulamadı: {e}")
+                sv.ayar_yaz(conn, "ikinci_yedek_klasor", ikinci)
+                flash("İkinci yedek klasörü kaydedildi." if ikinci else
+                      "İkinci yedek klasörü kaldırıldı.", "basari")
+                mesaj_var = True
+
             # PIN
             yeni_pin = request.form.get("yeni_pin", "").strip()
             kaldir = request.form.get("pin_kaldir")
             mevcut_pin = request.form.get("mevcut_pin", "")
             if kaldir:
+                if not _pin_kontrol(mevcut_pin):
+                    raise ValueError("PIN kaldırmak için mevcut PIN'i girin.")
                 sv.ayar_yaz(conn, "pin_hash", "")
                 sv.ayar_yaz(conn, "pin_tuz", "")
                 flash("PIN kilidi kaldırıldı.", "basari")

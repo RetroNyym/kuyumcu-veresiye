@@ -689,11 +689,18 @@ def hareket_gecmisi(limit: int = 200) -> list[dict]:
 # --------------------------------------------------------------------------- #
 # Dışa aktarma (CSV)
 # --------------------------------------------------------------------------- #
+def _csv_hucre(deger):
+    """Excel formül enjeksiyonuna karşı, tehlikeli başlangıçlı metin hücrelerinin başına ' ekler."""
+    if isinstance(deger, str) and deger[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + deger
+    return deger
+
+
 def _csv_satirlari(basliklar: list[str], satirlar: list[list]) -> str:
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";")
     w.writerow(basliklar)
-    w.writerows(satirlar)
+    w.writerows([[_csv_hucre(h) for h in satir] for satir in satirlar])
     return "﻿" + buf.getvalue()   # Excel için UTF-8 BOM
 
 

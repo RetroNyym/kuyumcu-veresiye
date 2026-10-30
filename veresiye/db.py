@@ -237,8 +237,19 @@ def baglanti(yol: str | None = None) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA synchronous=NORMAL")
+    conn.execute("PRAGMA synchronous=FULL")
     return conn
+
+
+def saglik_kontrol() -> str:
+    """Veritabanı bütünlüğünü denetler; sağlamsa 'ok', değilse hata metnini döndürür."""
+    conn = baglanti()
+    try:
+        return str(conn.execute("PRAGMA quick_check").fetchone()[0])
+    except sqlite3.DatabaseError as e:
+        return str(e)
+    finally:
+        conn.close()
 
 
 def init_db() -> None:
