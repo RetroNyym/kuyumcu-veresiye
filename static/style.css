@@ -553,7 +553,8 @@ details.acilir > summary:hover { filter: brightness(1.06); }
   :root { --golge: none; }
   body { background: #ffffff; }
   .sidebar, .cubuk, .menu-tusu, .mesajlar, .filtre, details.acilir,
-  .uyari-band, .ipucu-band, .chip, .buton, .kpi-izgara, .menu-acik::after { display: none !important; }
+  .uyari-band, .ipucu-band, .chip, .buton, .kpi-izgara, .menu-acik::after,
+  .durum-bari { display: none !important; }
   .app { display: block; }
   .main { display: block; }
   .icerik { padding: 0; max-width: none; }
@@ -606,4 +607,92 @@ details.acilir > summary:hover { filter: brightness(1.06); }
   .tablo-kaydir { overscroll-behavior-x: contain; }
   input, select, textarea { -webkit-user-select: auto; }
   body { -webkit-touch-callout: default; }
+}
+
+/* ==========================================================================
+   EXTRA MODE — son kat: tüm butonlar/kartlar/menü Windows-form tarzı (sade)
+   ========================================================================== */
+
+/* ... alt durum çubuğu (Extra'daki gibi, pencere boyunca) ... */
+.durum-bari {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  background: #eaf1f8;
+  border-top: 1px solid var(--cizgi-2);
+  padding: 6px 16px; padding-bottom: calc(6px + env(safe-area-inset-bottom));
+  font-size: 12.5px; color: var(--yazi);
+  margin-top: auto;
+}
+.durum-bari b { color: var(--mavi-koyu); font-weight: 700; }
+.durum-bari .orta { margin-left: auto; color: var(--soluk); }
+.durum-bari span:last-child { margin-left: 16px; color: var(--soluk); }
+
+/* ... tüm butonlar — düz gri Windows görünümü, mavi işaretleme ... */
+main .buton, .kart .buton, .filtre .buton, .status {
+  min-height: 44px;
+  background: linear-gradient(180deg, #ffffff 0%, #e6edf5 60%, #dde7f1 100%);
+  border: 1px solid var(--cizgi-2);
+  border-radius: 4px;
+  color: var(--yazi);
+  font-size: 14px; font-weight: 600;
+  box-shadow: none;
+}
+main .buton .ic, .kart .buton .ic { color: var(--mavi-koyu); }
+main .buton:hover, .kart .buton:hover, .filtre .buton:hover {
+  background: linear-gradient(180deg, #ffffff, #dbe9f8);
+  border-color: var(--mavi); color: var(--mavi-koyu); filter: none;
+}
+main .buton.altin, main .buton.yesil {
+  background: linear-gradient(180deg, #ffffff, #dbe9f8);
+  color: var(--mavi-koyu); border-color: var(--mavi); font-weight: 700;
+  min-height: 46px;
+}
+main .buton.altin .ic, main .buton.yesil .ic { color: var(--mavi); }
+main .buton.kirmizi { color: var(--hata); border-color: #d8a49c;
+                      background: linear-gradient(180deg, #fff, #f7e8e5); }
+main .buton.kirmizi .ic { color: var(--hata); }
+main .buton.sade {
+  background: transparent; border-color: transparent; box-shadow: none;
+  color: var(--soluk); min-height: 34px;
+}
+main .buton.sade:hover { color: var(--mavi-koyu); }
+
+/* ... menü — sade liste, aktif hafif mavi ... */
+.sidebar { background: #ffffff; border-right: 1px solid var(--cizgi-2); }
+.marka { background: #ffffff; border-bottom: 1px solid var(--cizgi-2); }
+.marka b { color: #1c2b3a; letter-spacing: .04em; }
+.marka span { color: var(--soluk); }
+.nav a { color: #1c2b3a; font-weight: 600; }
+.nav a:hover { background: var(--panel-2); border-color: transparent; color: var(--mavi-koyu); }
+.nav a.aktif {
+  background: var(--secili);
+  border-color: transparent;
+  color: var(--mavi-koyu);
+}
+.nav a .ic { color: var(--mavi-koyu); }
+.nav a.aktif .ic { color: var(--mavi-koyu); }
+.nav a .rozet-sayi { background: var(--panel-2); border: 1px solid var(--cizgi); color: var(--soluk); }
+.nav a.aktif .rozet-sayi { background: #ffffff; border-color: var(--cizgi); color: var(--mavi-koyu); }
+.alt-bilgi { background: #ffffff; border-top: 1px solid var(--cizgi); }
+.alt-bilgi .yetkili { color: var(--yazi); border-top: none; margin: 0; padding: 0; }
+
+/* ... kartlar/kpi sade ... */
+.kart { box-shadow: none; }
+.kpi { padding: 11px 13px; }
+.kpi .deger { font-size: 21px; margin-top: 5px; }
+.kpi .ikone { width: 30px; height: 30px; }
+.kpi .ust { font-size: 12.5px; }
+.kpi::after { display: none; }
+
+/* ... form etiketleri sade (Extra siyah-gri) ... */
+.alan label { color: #33465a; font-weight: 600; letter-spacing: 0; }
+
+/* ... üst şerit: ince, mavi kalır (pencere başlığı) ... */
+.cubuk h1 { font-size: 16.5px; font-weight: 700; }
+.chip { min-height: 30px; padding: 4px 10px; }
+
+/* ... tablo satır seçili mavi (listeleme hissi) ... */
+.tablo tbody tr:hover td { background: var(--secili); }
+
+@media (max-width: 720px) {
+  .durum-bari .orta { display: none; }
 }

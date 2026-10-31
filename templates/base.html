@@ -105,22 +105,6 @@
     </nav>
 
     <div class="alt-bilgi">
-      <div class="satir">
-        <span class="nokta {{ '' if yedek_durum.get('son_gunluk') else 'kapali' }}"></span>
-        Günlük yedek:
-        {% if yedek_durum.get('son_gunluk') %}
-          {{ yedek_durum['son_gunluk'] | tarih }}
-        {% else %}bekliyor{% endif %}
-      </div>
-      <div class="satir">
-        <span class="nokta {{ '' if yedek_durum.get('son_saatlik') else 'kapali' }}"></span>
-        Saatlik yedek:
-        {% if yedek_durum.get('son_saatlik') %}
-          {{ yedek_durum['son_saatlik'] | saat }}
-        {% else %}ilk dakikada alınacak{% endif %}
-      </div>
-      <div class="satir">Tablet erişimi:</div>
-      <code>http://{{ lan_ip }}:{{ port }}</code>
       <div class="satir yetkili">Yetkili: Mehmet Avkıran</div>
     </div>
   </aside>
@@ -178,6 +162,16 @@
 
       {% block icerik %}{% endblock %}
     </main>
+
+    {# ---------------------------------------------------- alt durum çubuğu #}
+    <footer class="durum-bari">
+      <span><b>Hacılar Kuyumculuk</b> · Yetkili: Mehmet Avkıran</span>
+      <span class="orta">Tablet erişimi: http://{{ lan_ip }}:{{ port }}</span>
+      <span>
+        Günlük yedek:
+        {% if yedek_durum.get('son_gunluk') %}{{ yedek_durum['son_gunluk'] | tarih }}{% else %}bekliyor{% endif %}
+      </span>
+    </footer>
   </div>
 </div>
 
