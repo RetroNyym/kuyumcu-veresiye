@@ -218,10 +218,10 @@ a:hover { text-decoration: underline; }
 .kart + .kart, .izgara-2 .kart { margin-top: 0; }
 
 .kart-baslik {
-  padding: 10px 16px;
+  padding: 11px 16px;
   border-bottom: 1px solid var(--cizgi);
   display: flex; align-items: center; gap: 10px;
-  background: linear-gradient(180deg, #f2f7fc, #e4eef7);
+  background: #edf3f9;
 }
 .kart-baslik h2 { margin: 0; font-size: 14.5px; font-weight: 700; letter-spacing: .02em;
                   color: var(--mavi-koyu); }
@@ -258,7 +258,7 @@ a:hover { text-decoration: underline; }
 
 /* --------------------------------------------------------------- tablo -- */
 .tablo-kaydir { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-table.tablo { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.tablo { width: 100%; border-collapse: collapse; font-size: 14.5px; }
 .tablo th {
   text-align: left; font-size: 12px; letter-spacing: .04em;
   color: #ffffff; padding: 9px 12px;
@@ -321,6 +321,7 @@ table.tablo { width: 100%; border-collapse: collapse; font-size: 14px; }
 .buton:active { filter: brightness(.92); transform: translateY(1px); }
 .buton.altin, .buton.yesil {
   background: var(--altin-dog); color: #ffffff; border-color: #1d4f92;
+  min-height: 46px; padding: 10px 22px; font-size: 15px;
   box-shadow: 0 1px 2px rgba(28, 60, 95, .3);
 }
 .buton.altin:hover, .buton.yesil:hover { filter: brightness(1.08); color: #ffffff; }
@@ -497,17 +498,25 @@ details.acilir { border: 1px solid var(--cizgi-2); border-radius: var(--yari-cap
   background: var(--panel); overflow: hidden; margin-bottom: 14px;
   box-shadow: var(--golge); }
 details.acilir > summary {
-  cursor: pointer; padding: 12px 16px; font-weight: 700; font-size: 14.5px;
+  cursor: pointer; padding: 12px 16px; font-weight: 700; font-size: 15px;
   list-style: none; display: flex; align-items: center; gap: 10px;
-  background: linear-gradient(180deg, #f2f7fc, #e4eef7);
-  color: var(--mavi-koyu);
-  user-select: none; min-height: 46px;
+  background: linear-gradient(180deg, #5285c2, #3a6ea9);
+  color: #ffffff;
+  user-select: none; min-height: 48px;
 }
 details.acilir > summary::-webkit-details-marker { display: none; }
-details.acilir > summary::before { content: "▸"; color: var(--mavi); transition: .15s;
+details.acilir > summary::before { content: "▸"; color: #cfe2f6; transition: .15s;
   display: inline-block; }
+details.acilir > summary::after {
+  content: "EKLE / GÜNCELLE";
+  margin-left: auto;
+  font-size: 11px; font-weight: 700; letter-spacing: .08em;
+  color: #ffffff; background: rgba(255, 255, 255, .16);
+  border: 1px solid rgba(255, 255, 255, .35);
+  padding: 3px 9px; border-radius: 4px;
+}
 details.acilir[open] > summary::before { transform: rotate(90deg); }
-details.acilir > summary:hover { background: var(--panel-3); }
+details.acilir > summary:hover { filter: brightness(1.06); }
 .acilir-icerik { padding: 16px; border-top: 1px solid var(--cizgi); }
 
 .ipucu-band {
