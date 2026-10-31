@@ -1,4 +1,4 @@
-"""Kuyumcu Veresiye Premium — Flask uygulama fabrikası."""
+"""Hacılar Kuyumculuk — Veresiye Takip Programı · Flask uygulama fabrikası."""
 from __future__ import annotations
 
 import os

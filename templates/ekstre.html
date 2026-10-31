@@ -17,14 +17,12 @@
 <div class="kart">
   <div class="kart-govde">
     <div style="display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;
-                border-bottom:2px solid var(--altin-3);padding-bottom:14px;margin-bottom:16px">
+                border-bottom:2px solid var(--cizgi-2);padding-bottom:14px;margin-bottom:16px">
       <div>
-        <div style="font-size:20px;font-weight:800;letter-spacing:.06em;
-                    background:var(--altin-dog);-webkit-background-clip:text;
-                    background-clip:text;color:transparent">
+        <div style="font-size:20px;font-weight:800;letter-spacing:.06em;color:var(--mavi-koyu)">
           {{ dukkan | upper }}
         </div>
-        <div class="ince">Veresiye Hesap Ekstresi</div>
+        <div class="ince">Veresiye Hesap Ekstresi · Yetkili: Mehmet Avkıran</div>
       </div>
       <div style="text-align:right;font-size:13px;color:var(--soluk)">
         <div>Düzenlenme: {{ bugun_tarih | tarih }}</div>
@@ -127,13 +125,13 @@
 
     <div class="ekstre-imza">
       <div>Müşteri İmza / Kaşe</div>
-      <div>Dükkân Yetkilisi</div>
+      <div>Dükkân Yetkilisi<div class="imza-kisi">Mehmet Avkıran</div></div>
     </div>
 
-    <div class="ince" style="margin-top:16px;font-size:11.5px;color:var(--soluk-2);
-                             text-align:center">
-      {{ dukkan }} · Veresiye Premium · Düzenleme tarihi {{ bugun_tarih | tarih }} ·
-      Bu ekstre bilgilendirme amaçlıdır.
+    <div class="ekstre-bilgi">
+      <span><b>{{ dukkan }}</b> · Veresiye Takip Programı</span>
+      <span>Düzenleme tarihi: {{ bugun_tarih | tarih }}</span>
+      <span>Bu ekstre bilgilendirme amaçlıdır.</span>
     </div>
   </div>
 </div>

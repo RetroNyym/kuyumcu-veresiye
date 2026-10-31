@@ -3,7 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0d1117">
+  <meta name="theme-color" content="#2f6fc1">
+  {# iOS / iPad: ana ekrana ekleme + tam ekran web uygulamasi davranisi #}
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Hacılar Kuyumculuk">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='amblem-180.png') }}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='amblem-192.png') }}">
   <title>{% block sayfa_basligi %}{{ dukkan }} — Veresiye{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -41,10 +50,10 @@
   {# ============================================================== kenar çubuğu #}
   <aside class="sidebar">
     <div class="marka">
-      <div class="amblem">K</div>
+      <div class="amblem">H</div>
       <div>
-        <b>Kuyumcu</b>
-        <span>Veresiye Premium</span>
+        <b>Hacılar Kuyumculuk</b>
+        <span>Veresiye Takip Programı</span>
       </div>
     </div>
 
@@ -112,6 +121,7 @@
       </div>
       <div class="satir">Tablet erişimi:</div>
       <code>http://{{ lan_ip }}:{{ port }}</code>
+      <div class="satir yetkili">Yetkili: Mehmet Avkıran</div>
     </div>
   </aside>
 

@@ -1,4 +1,4 @@
-"""Kuyumcu Veresiye Premium — başlatıcı.
+"""Hacılar Kuyumculuk — Veresiye Takip Programı · başlatıcı.
 
 Çalıştır:  python baslat.py
 - Paneli kendi tarayıcınızda açar.
@@ -60,7 +60,7 @@ def main() -> None:
 
     print()
     print("=" * 62)
-    print("   KUYUMCU VERESİYE PREMIUM")
+    print("   HACILAR KUYUMCULUK · VERESİYE TAKİP PROGRAMI")
     print("=" * 62)
     print(f"   Panel (bu bilgisayar) : {yerel}")
     print(f"   Tablet / diğer cihaz  : {tablet}")

@@ -150,7 +150,7 @@ def _baglam():
         "port": current_app.config.get("PORT", 8765),
         "yedek_durum": durum,
         "yedek_uyari": _yedek_uyari(),
-        "dukkan": _ayar("dukkan_adi", "Kuyumcu"),
+        "dukkan": _ayar("dukkan_adi", "Hacılar Kuyumculuk"),
         "gram_simdi": sv.fiyat_getir(),
         "bugun_tarih": date.today().isoformat(),
         "pin_var": bool(_ayar("pin_hash", "")),

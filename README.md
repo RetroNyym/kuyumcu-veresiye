@@ -1,4 +1,4 @@
-# Kuyumcu Veresiye Premium
+# Hacılar Kuyumculuk — Veresiye Takip Programı
 
 Kuyumcular için **premium veresiye takip programı**. Web arayüzlüdür: ana bilgisayarda
 çalışır, **aynı Wi-Fi ağındaki tabletten** tarayıcı ile erişilir. Tamamen çevrimdışı

@@ -1,0 +1,14 @@
+{
+  "name": "Hacılar Kuyumculuk",
+  "short_name": "Hacılar",
+  "description": "Veresiye Takip Programı — Mehmet Avkıran",
+  "start_url": "/panel",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#d9e4ef",
+  "theme_color": "#2f6fc1",
+  "icons": [
+    { "src": "/static/amblem-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/static/amblem-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
