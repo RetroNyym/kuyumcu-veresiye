@@ -28,42 +28,49 @@
 <details class="acilir" id="yeni" {% if not musteriler %}open{% endif %}>
   <summary><svg class="ic"><use href="#i-ekle"/></svg> CARI KART TANIMLAMA — yeni müşteri / firma</summary>
   <div class="acilir-icerik">
-    <form method="post" action="{{ url_for('views.musteri_ekle') }}">
+    <form method="post" action="{{ url_for('views.musteri_ekle') }}" class="ekstra-form">
       <input type="hidden" name="geri" value="{{ url_for('views.musteriler_sayfasi') }}#yeni">
-      <div class="form-izgara">
-        <div class="alan">
-          <label>Cari Kodu</label>
-          <input disabled value="otomatik (CK0001...)" style="color:var(--soluk-2)">
-        </div>
-        <div class="alan">
-          <label>Adı Soyadı / Ünvan *</label>
-          <input name="ad" placeholder="örn. Ayşe Yılmaz" required autofocus>
-        </div>
-        <div class="alan">
-          <label>1. Telefon</label>
-          <input name="telefon" inputmode="tel" placeholder="05xx xxx xx xx">
-        </div>
-        <div class="alan">
-          <label>Açık Hesap Limiti (V.No yerine) <span class="ipucu">0 = limitsiz</span></label>
-          <input name="limit" inputmode="decimal" placeholder="örn. 50.000">
-        </div>
-        <div class="alan">
-          <label>Kategori <span class="ipucu">(dükkan, market…)</span></label>
-          <input name="kategori" placeholder="örn. dükkan">
-        </div>
-        <div class="alan genis">
-          <label>Adres</label>
-          <input name="adres" placeholder="Mahalle / cadde no…">
-        </div>
-        <div class="alan genis">
-          <label>Not <span class="ipucu">(kefil, teminat, özel not…)</span></label>
-          <textarea name="notlar" rows="2"></textarea>
+
+      <div class="ekstra-satir">
+        <label>Cari Kodu</label>
+        <div class="ekstra-girdi-kume">
+          <input disabled value="otomatik (CK0001 …)" style="color:var(--soluk-2);background:#f6f9fc">
         </div>
       </div>
-      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+
+      <div class="ekstra-satir">
+        <label>Adı Soyadı / Ünvan *</label>
+        <input name="ad" placeholder="örn. Ayşe Yılmaz" required autofocus>
+      </div>
+
+      <div class="ekstra-satir">
+        <label>1. Telefon</label>
+        <input name="telefon" inputmode="tel" placeholder="05xx xxx xx xx" style="max-width:240px">
+        <label style="width:auto;margin-left:18px">Kategori</label>
+        <input name="kategori" placeholder="örn. dükkan" style="max-width:200px">
+      </div>
+
+      <div class="ekstra-satir">
+        <label>Açık Hesap Limiti (TL)</label>
+        <input name="limit" inputmode="decimal" placeholder="örn. 50.000" style="max-width:240px">
+        <span class="ipucu satir-ipucu">0 = limitsiz · Extra'daki "V.No/Limit" alanının karşılığı</span>
+      </div>
+
+      <div class="ekstra-satir">
+        <label>Adres</label>
+        <input name="adres" placeholder="Mahalle / cadde no…">
+      </div>
+
+      <div class="ekstra-satir">
+        <label>Not (kefil, teminat…)</label>
+        <textarea name="notlar" rows="2"></textarea>
+      </div>
+
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
         <button class="buton altin" type="submit">
           <svg class="ic"><use href="#i-tik"/></svg> Kaydet
         </button>
+        <button class="buton sade" type="button" data-git="#musteri-tablosu">Listele</button>
         <label class="hatirla" style="margin-left:6px">
           <input type="checkbox" name="detay" value="1"> Kaydettikten sonra hareket ekranını aç
         </label>

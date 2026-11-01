@@ -182,7 +182,15 @@
     }
   });
 
-  /* ---------------------------------------------- formlar hep açık beyaslı */
+  /* ------------------------------------- üst menü (dokunmatik açılma) ---- */
+  document.addEventListener("click", function (e) {
+    var bas = e.target.closest(".menu-bas");
+    var grup = e.target.closest(".menu-grup");
+    document.querySelectorAll(".menu-grup.acik").forEach(function (g) {
+      if (!grup || g !== grup) g.classList.remove("acik");
+    });
+    if (bas && grup) grup.classList.toggle("acik");
+  });
   /* kullanım kolaylığı: kayıt formları sayfada hep görünür
      (listeye kaydırma: ":kayit" hedefine oturulur). */
   document.querySelectorAll("details.acilir").forEach(function (d) {

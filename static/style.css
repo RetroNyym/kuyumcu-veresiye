@@ -972,3 +972,74 @@ main .buton, .kart .buton, .filtre .buton { border-radius: 3px; }
   .cari-bilgi { grid-template-columns: 1fr; }
   .cari-bilgi > div:nth-child(odd) { border-right: none; }
 }
+
+/* ==========================================================================
+   AÇILIR MENÜ ÇUBUĞU — Extra'daki üst menülerin birebir davranışı
+   ========================================================================== */
+.menu-cubugu {
+  align-items: stretch;
+  gap: 0;
+}
+.menu-grup { position: relative; }
+.menu-bas {
+  display: inline-flex; align-items: center;
+  padding: 5px 12px;
+  color: #1c2b3a; font-size: 13.5px; font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.menu-bas:hover { background: var(--panel-2);
+                  border-bottom-color: var(--mavi); }
+.menu-listesi {
+  display: none;
+  position: absolute; top: 100%; left: 0; z-index: 60;
+  min-width: 210px;
+  background: #ffffff;
+  border: 1px solid var(--cizgi-2);
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 6px 18px rgba(28,60,95,.22);
+  padding: 4px 0;
+}
+.menu-grup:hover .menu-listesi, .menu-bas:focus-within .menu-listesi {
+  display: block;
+}
+.menu-listesi a {
+  display: block;
+  padding: 8px 16px;
+  color: #1c2b3a; font-size: 13.5px; font-weight: 600;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+.menu-listesi a:hover { background: var(--secili); color: var(--mavi-koyu); }
+
+/* dokunmatik (masaüstü hover yok): ilk tık menüyü açar, ikinci tık girer */
+@media (hover: none) {
+  .menu-listesi { display: none; }
+  .menu-grup.acik .menu-listesi { display: block; }
+}
+
+/* ==========================================================================
+   EKSTRA FORM — Extra'daki etiket-solda/girdi-sağda satır düzeni
+   ========================================================================== */
+.ekstra-form { display: flex; flex-direction: column; gap: 8px; }
+.ekstra-satir {
+  display: flex; align-items: center; gap: 10px;
+  padding: 3px 0;
+}
+.ekstra-satir > label {
+  width: 168px; flex: none;
+  text-align: left;
+  color: #33465a; font-size: 13.5px; font-weight: 600;
+}
+.ekstra-satir input, .ekstra-satir textarea { flex: 1; min-width: 0; }
+.ekstra-satir input[style*="max-width"], .ekstra-satir [style*="max-width"] {
+  flex: none !important;
+}
+.ekstra-satir .satir-ipucu { font-size: 11.5px; color: var(--soluk-2); flex: 1; min-width: 0; }
+
+@media (max-width: 720px) {
+  .ekstra-satir { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .ekstra-satir > label { width: auto; }
+  .ekstra-satir input, .ekstra-satir textarea { width: 100%; }
+  .ekstra-satir [style*="max-width"] { max-width: 100% !important; }
+}
