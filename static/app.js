@@ -164,7 +164,7 @@
   });
 
   /* ---------------------------------------------- formlar hep açık beyaslı */
-  /* Extra tarzi kullanım kolaylığı: kayıt formları sayfada hep görünür
+  /* kullanım kolaylığı: kayıt formları sayfada hep görünür
      (listeye kaydırma: ":kayit" hedefine oturulur). */
   document.querySelectorAll("details.acilir").forEach(function (d) {
     if (!d.hasAttribute("data-kapali")) d.setAttribute("open", "");

@@ -1,6 +1,7 @@
 /* ==========================================================================
    HACILAR KUYUMCULUK — Veresiye Takip Programı
-   Extra Yazılım cari programı tarzında klasik & açık tema.
+   HACILAR KUYUMCULUK — arayüz teması
+   Klasik & açık tema (pencere mavi-gri, butonlar/menüler Windows-form tarzı).
    Ekstra özellik yok; yalnızca görünüm düzenlendi.
    iOS / iPad (Safari) uyumlu: dokunmatik hedefler >= 44px, giriş alanlarında
    odaklanınca zoom olmayan 16px yazı, safe-area payı, web app meta'ları base.html'de.
@@ -610,10 +611,10 @@ details.acilir > summary:hover { filter: brightness(1.06); }
 }
 
 /* ==========================================================================
-   EXTRA MODE — son kat: tüm butonlar/kartlar/menü Windows-form tarzı (sade)
+   SADE MOD — son kat: tüm butonlar/kartlar/menü Windows-form tarzı (sade)
    ========================================================================== */
 
-/* ... alt durum çubuğu (Extra'daki gibi, pencere boyunca) ... */
+/* ... alt durum çubuğu (pencere boyunca) ... */
 .durum-bari {
   display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
   background: #eaf1f8;
@@ -683,7 +684,7 @@ main .buton.sade:hover { color: var(--mavi-koyu); }
 .kpi .ust { font-size: 12.5px; }
 .kpi::after { display: none; }
 
-/* ... form etiketleri sade (Extra siyah-gri) ... */
+/* ... form etiketleri sade ... */
 .alan label { color: #33465a; font-weight: 600; letter-spacing: 0; }
 
 /* ... üst şerit: ince, mavi kalır (pencere başlığı) ... */
@@ -698,10 +699,10 @@ main .buton.sade:hover { color: var(--mavi-koyu); }
 }
 
 /* ==========================================================================
-   EXTRA SHELL — üst menü şeridi + oklu hızlı menü + groupbox kartlar
+   KABUK — üst menü şeridi + oklu hızlı menü + groupbox kartlar
    ========================================================================== */
 
-/* menü şeridi (KitchenExtra'daki adres satırı altındaki menü) */
+/* menü şeridi (adres çubuğu altındaki menü) */
 .menu-cubugu {
   background: #ffffff;
   border-bottom: 1px solid var(--cizgi-2);
@@ -724,7 +725,7 @@ main .buton.sade:hover { color: var(--mavi-koyu); }
   color: var(--mavi-koyu);
 }
 
-/* sol menü: Extra'da "Hızlı Menü" oklu butonları */
+/* sol menü: "Hızlı Menü" oklu butonları */
 .sidebar { background: #ffffff; }
 .nav a::before {
   content: "→";
@@ -758,7 +759,7 @@ details.acilir > summary::after {
   content: none;                     /* rozet kaldırıldı — sade */
 }
 
-/* durum çubuğu — Extra en altta iki satırlı bilgi bandı */
+/* durum çubuğu — en altta iki satırlı bilgi bandı */
 .durum-bari {
   display: block;
   background: #d8e2ec;
@@ -775,10 +776,10 @@ details.acilir > summary::after {
 }
 .durum-bari .durum-satirorta::first-letter { text-transform: uppercase; }
 
-/* butonlar — köşeler Extra gibi tam kareye yakın */
+/* butonlar — köşeler tam kareye yakın */
 main .buton, .kart .buton, .filtre .buton { border-radius: 3px; }
 
-/* üst şerit: Extra pencere başlığı hissi (kısa) */
+/* üst şerit: pencere başlığı hissi (kısa) */
 .cubuk { padding: 7px 16px; }
 .cubuk h1 { font-size: 15px; }
 
@@ -787,7 +788,7 @@ main .buton, .kart .buton, .filtre .buton { border-radius: 3px; }
 }
 
 /* ==========================================================================
-   EXTRA ANASAYFA — büyük şirket adı + sık kullanılanlar + simge sütunu
+   ANASAYFA — büyük şirket adı + sık kullanılanlar + simge sütunu
    ========================================================================== */
 .ana-merkez { text-align: center; padding: 8px 0 14px; }
 .ana-marka {
@@ -810,7 +811,7 @@ main .buton, .kart .buton, .filtre .buton { border-radius: 3px; }
   position: sticky; top: 110px;
 }
 
-/* sol hızlı menü — Extra buton satırları */
+/* sol hızlı menü — buton satırları */
 .hizli-menu a {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 12px; min-height: 44px;

@@ -32,7 +32,7 @@ from veresiye import db as vdb          # noqa: E402
 from veresiye import services as sv     # noqa: E402
 
 # --------------------------------------------------------------------------- #
-# Tema: Extra Yazilim tarzi acik klasik (pencere mavi-gri + mavi vurgu)
+# Tema: klasik acik pencere (mavi-gri zemin + mavi vurgu)
 # --------------------------------------------------------------------------- #
 ARKA = "#cfdcea"        # pencere zemini
 PANEL = "#ffffff"       # kart zemini
@@ -153,18 +153,63 @@ class Uygulama:
         self.secili_musteri: int | None = None
         self._tema_kur()
         self._ust_serit()
-        # program sahibi alt bilgi çubuğu (pencerenin en altında)
-        alt = ttk.Frame(self.kok, style="Panel.TFrame", padding=(18, 6))
+        # durum çubuğu — altta bilgilendirme bandı
+        alt = ttk.Frame(self.kok, style="Panel.TFrame", padding=(14, 5))
         alt.pack(side="bottom", fill="x")
-        ttk.Label(alt, text=f"© {datetime.now().year} {SAHIBI} · HACILAR KUYUMCULUK",
-                  style="Soluk.TLabel", background=PANEL).pack(side="left")
-        ttk.Label(alt, text=f"Veresiye Takibi · Sürüm {gu.SURUM}", style="Soluk.TLabel",
-                  background=PANEL).pack(side="right")
+        from tkinter import font as tkfont
+        alt_font = ("Segoe UI", 9)
+        ttk.Label(alt,
+                  text=("Ana Makina: localhost (127.0.0.1)  -  "
+                        "Şirket: HACILAR KUYUMCULUK  -  "
+                        "Kullanıcı: MEHMET AVKIRAN"),
+                  style="Soluk.TLabel", background=PANEL,
+                  font=alt_font).pack(side="left")
+        ttk.Label(alt,
+                  text=(f"Veresiye Takibi · Sürüm {gu.SURUM} · "
+                        f"{datetime.now().strftime('%d %m %Y')}"),
+                  style="Soluk.TLabel", background=PANEL,
+                  font=alt_font).pack(side="right")
         self._sekmeler()
+        self._menu_kur()
         self.panel_yenile()
         self._selam_dongu()
         self.yedekci.baslat()
         kok.protocol("WM_DELETE_WINDOW", self.kapat)
+
+    # ------------------------------------------------------- üst OS menüsü #
+    def _menu_kur(self):
+        """Üst menü çubuğu: Müşteri (Cari) · Sistem · Yardım."""
+        menubare = tk.Menu(self.kok, bg=PANEL, fg=METIN,
+                           activebackground=ALTIN, activeforeground="#ffffff",
+                           font=("Segoe UI", 9))
+        # --- Müşteri (Cari)
+        m1 = tk.Menu(menubare, tearoff=0, bg="#ffffff", fg=METIN)
+        m1.add_command(label="Borçlar (Anasayfa)",
+                       command=lambda: self.notlar_ck.select(self.tab_panel))
+        m1.add_command(label="Yeni Satış / Tahsilat",
+                       command=lambda: self.notlar_ck.select(self.tab_panel))
+        m1.add_separator()
+        m1.add_command(label="Çıkış", command=self.kapat)
+        menubare.add_cascade(label="Müşteri (Cari)", menu=m1)
+        # --- Sistem
+        m2 = tk.Menu(menubare, tearoff=0, bg="#ffffff", fg=METIN)
+        m2.add_command(label="Yedek & Güvenlik",
+                       command=lambda: self.notlar_ck.select(self.tab_yedek))
+        m2.add_separator()
+        m2.add_command(label="Kapat", command=self.kapat)
+        menubare.add_cascade(label="Sistem", menu=m2)
+        # --- Yardım
+        m3 = tk.Menu(menubare, tearoff=0, bg="#ffffff", fg=METIN)
+        m3.add_command(label="Hakkında",
+                       command=lambda: messagebox.showinfo(
+                           "Hacılar Kuyumculuk",
+                           "HACILAR KUYUMCULUK — Veresiye Takip Programı\n"
+                           "Yetkili: Mehmet Avkıran\n"
+                           f"Sürüm: {gu.SURUM}\n\n"
+                           "Veriler bu bilgisayarda saklanır ve otomatik "
+                           "saatlik + günlük + aylık yedeklenir."))
+        menubare.add_cascade(label=" Yardım ", menu=m3)
+        self.kok.config(menu=menubare)
 
     # ---------------------------------------------------------------- tema #
     def _baslik(self) -> str:
@@ -344,6 +389,16 @@ class Uygulama:
 
     # ================================================================ BORCLAR
     def _panel_kur(self):
+        # --- anasayfa başlığı --------------------------------------------
+        baslik1 = tk.Label(self.tab_panel, text="HACILAR KUYUMCULUK",
+                           bg=ARKA, fg=ALTIN_ACIK,
+                           font=("Segoe UI", 21, "bold"))
+        baslik1.pack(anchor="center", pady=(2, 0))
+        baslik2 = tk.Label(self.tab_panel,
+                           text="Veresiye Takip Programı  ·  Yetkili: Mehmet Avkıran",
+                           bg=ARKA, fg=SOLUK, font=("Segoe UI", 9))
+        baslik2.pack(anchor="center", pady=(0, 6))
+
         # --- buyuk arama alani: isim yaz -> borcu gor --------------------- #
         ara = ttk.Frame(self.tab_panel)
         ara.pack(fill="x")

@@ -1,18 +1,18 @@
-"""HACILAR KUYUMCULUK — uzaktan güncelleme modülü.
+﻿"""HACILAR KUYUMCULUK â€” uzaktan gÃ¼ncelleme modÃ¼lÃ¼.
 
-Mantık:
-- Sürümler ayrı, ÖZEL bir depoda (RetroNyym/hacilar-guncelleme) GitHub
-  Release olarak yayınlanır. Ana kod deposu da özeldir.
-- Özel depodan okuma için salt-okunur fine-grained token gerekir: token,
-  guncelleme_anahtari.txt içinde gelir ve derlerken exe'ye gömülür. Token
+MantÄ±k:
+- SÃ¼rÃ¼mler ayrÄ±, Ã–ZEL bir depoda (RetroNyym/hacilar-guncelleme) GitHub
+  Release olarak yayÄ±nlanÄ±r. Ana kod deposu da Ã¶zeldir.
+- Ã–zel depodan okuma iÃ§in salt-okunur fine-grained token gerekir: token,
+  guncelleme_anahtari.txt iÃ§inde gelir ve derlerken exe'ye gÃ¶mÃ¼lÃ¼r. Token
   YALNIZCA bu depoyu okuyabilir; kod deponuza dokunamaz.
-- Program her açılışta en son sürümü kontrol eder (internet yoksa veya
-  kontrol başarısızsa program normal açılır — hiçbir zaman takılmaz).
-- Yayında daha yeni bir sürüm varsa güncelleme MECBURİDİR: kullanıcı ya
-  günceller ya da programı kapatır.
+- Program her aÃ§Ä±lÄ±ÅŸta en son sÃ¼rÃ¼mÃ¼ kontrol eder (internet yoksa veya
+  kontrol baÅŸarÄ±sÄ±zsa program normal aÃ§Ä±lÄ±r â€” hiÃ§bir zaman takÄ±lmaz).
+- YayÄ±nda daha yeni bir sÃ¼rÃ¼m varsa gÃ¼ncelleme MECBURÄ°DÄ°R: kullanÄ±cÄ± ya
+  gÃ¼nceller ya da programÄ± kapatÄ±r.
 
-Bayi akışı (sahip):
-  GuncellemeYayinla.exe  →  sürüm no + notları gir, exe'yi seç; hepsi bu.
+Bayi akÄ±ÅŸÄ± (sahip):
+  GuncellemeYayinla.exe  â†’  sÃ¼rÃ¼m no + notlarÄ± gir, exe'yi seÃ§; hepsi bu.
 """
 from __future__ import annotations
 
@@ -23,19 +23,19 @@ import subprocess
 import sys
 import urllib.request
 
-SURUM = "1.2.0"                       # bu programın sürümü
-DEPO = "RetroNyym/hacilar-guncelleme"  # ÖZEL güncelleme deposu
+SURUM = "1.3.0"                       # bu programÄ±n sÃ¼rÃ¼mÃ¼
+DEPO = "RetroNyym/hacilar-guncelleme"  # Ã–ZEL gÃ¼ncelleme deposu
 EXE_ADI = "HacilarKuyumculuk.exe"
 ZAMAN_ASIMI = 8                        # saniye
 ANAHTAR_DOSYASI = "guncelleme_anahtari.txt"   # okuma yetkili token (depoya girilmez)
 
 
 def _token() -> str:
-    """Özel depodan indirme için salt-okunur erişim anahtarı.
+    """Ã–zel depodan indirme iÃ§in salt-okunur eriÅŸim anahtarÄ±.
 
-    Anahtar, proje kökündeki guncelleme_anahtari.txt içindedir ve derlerken
-    exe'nin içine gömülür (depoya commit EDİLMEZ). Sadece bu depoyu okuma
-    yetkili fine-grained token kullanın.
+    Anahtar, proje kÃ¶kÃ¼ndeki guncelleme_anahtari.txt iÃ§indedir ve derlerken
+    exe'nin iÃ§ine gÃ¶mÃ¼lÃ¼r (depoya commit EDÄ°LMEZ). Sadece bu depoyu okuma
+    yetkili fine-grained token kullanÄ±n.
     """
     kokler = [getattr(sys, "_MEIPASS", ""),
               os.path.dirname(os.path.abspath(__file__))]
@@ -62,7 +62,7 @@ def _reg():
 
 
 def kurulum_yaz(surum: str) -> None:
-    """İndirilen sürümün yüklendiğini işaretler (güncelleme döngüsünü kırar)."""
+    """Ä°ndirilen sÃ¼rÃ¼mÃ¼n yÃ¼klendiÄŸini iÅŸaretler (gÃ¼ncelleme dÃ¶ngÃ¼sÃ¼nÃ¼ kÄ±rar)."""
     k = _reg()
     if k is not None:
         try:
@@ -84,7 +84,7 @@ def kurulum_oku() -> str:
 
 
 # --------------------------------------------------------------------------- #
-# Sürüm karşılaştırma (1.2.10 > 1.2.9 gibi)
+# SÃ¼rÃ¼m karÅŸÄ±laÅŸtÄ±rma (1.2.10 > 1.2.9 gibi)
 # --------------------------------------------------------------------------- #
 def _parcala(surum: str) -> tuple[int, ...]:
     sayilar = re.findall(r"\d+", surum or "")
@@ -96,7 +96,7 @@ def surum_yeni_mi(aday: str, mevcut: str) -> bool:
 
 
 # --------------------------------------------------------------------------- #
-# Son sürümü sorgula
+# Son sÃ¼rÃ¼mÃ¼ sorgula
 # --------------------------------------------------------------------------- #
 def _basliklar() -> dict:
     b = {
@@ -112,8 +112,8 @@ def _basliklar() -> dict:
 def en_yeni_surum() -> dict | None:
     """GitHub API'den son release'i okur.
 
-    Dönen: {'surum': '1.1.0', 'exe_url': ..., 'boyut': int, 'notlar': str}
-    Bilgi alınamazsa (internet yok, anahtar yok, depo boş, API hatası) -> None.
+    DÃ¶nen: {'surum': '1.1.0', 'exe_url': ..., 'boyut': int, 'notlar': str}
+    Bilgi alÄ±namazsa (internet yok, anahtar yok, depo boÅŸ, API hatasÄ±) -> None.
     """
     url = f"https://api.github.com/repos/{DEPO}/releases/latest"
     try:
@@ -145,23 +145,23 @@ def en_yeni_surum() -> dict | None:
 
 
 def kontrol() -> dict | None:
-    """Yeni sürüm varsa bilgini döndürür; yoksa/hata ise None."""
+    """Yeni sÃ¼rÃ¼m varsa bilgini dÃ¶ndÃ¼rÃ¼r; yoksa/hata ise None."""
     bilgi = en_yeni_surum()
     if not bilgi:
         return None
     if bilgi["surum"] == kurulum_oku():
-        return None   # bu yayın zaten bu makineye kurulmuş
+        return None   # bu yayÄ±n zaten bu makineye kurulmuÅŸ
     if surum_yeni_mi(bilgi["surum"], SURUM):
         return bilgi
     return None
 
 
 # --------------------------------------------------------------------------- #
-# İndirme + kendini değiştirme
+# Ä°ndirme + kendini deÄŸiÅŸtirme
 # --------------------------------------------------------------------------- #
 class _YetkisizYonlendirme(urllib.request.HTTPRedirectHandler):
-    """GitHub, özel depo varlığını imzalı bir depolama adresine yönlendirir.
-    Yetki başlığı bu üçüncü taraf sunucuya gönderilmez."""
+    """GitHub, Ã¶zel depo varlÄ±ÄŸÄ±nÄ± imzalÄ± bir depolama adresine yÃ¶nlendirir.
+    Yetki baÅŸlÄ±ÄŸÄ± bu Ã¼Ã§Ã¼ncÃ¼ taraf sunucuya gÃ¶nderilmez."""
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         yeni = super().redirect_request(req, fp, code, msg, headers, newurl)
@@ -172,7 +172,7 @@ class _YetkisizYonlendirme(urllib.request.HTTPRedirectHandler):
 
 
 def indir(url: str, hedef: str, ilerleme=None) -> str:
-    """Exe'yi indirir; boyut kontrolü yapar; hedef yolunu döndürür."""
+    """Exe'yi indirir; boyut kontrolÃ¼ yapar; hedef yolunu dÃ¶ndÃ¼rÃ¼r."""
     os.makedirs(os.path.dirname(hedef), exist_ok=True)
     basliklar = _basliklar()
     if "api.github.com" in url:
@@ -192,8 +192,8 @@ def indir(url: str, hedef: str, ilerleme=None) -> str:
                 alinan += len(parca)
                 if ilerleme and toplam:
                     ilerleme(alinan, toplam)
-    if alinan < 1024 * 1024:   # 1 MB'den küçük exe asla sağlıklı olamaz
-        raise RuntimeError("İndirilen dosya tamamlanamadı (çok küçük).")
+    if alinan < 1024 * 1024:   # 1 MB'den kÃ¼Ã§Ã¼k exe asla saÄŸlÄ±klÄ± olamaz
+        raise RuntimeError("Ä°ndirilen dosya tamamlanamadÄ± (Ã§ok kÃ¼Ã§Ã¼k).")
     return hedef
 
 
@@ -208,17 +208,17 @@ def dogrula(dosya: str, beklenen_boyut: int = 0) -> bool:
 
 
 def uygula(yeni_dosya: str) -> None:
-    """Çalışan programın kapanmasından sonra yeni exe'yi yerine koyup açar.
+    """Ã‡alÄ±ÅŸan programÄ±n kapanmasÄ±ndan sonra yeni exe'yi yerine koyup aÃ§ar.
 
-    Toplu iş (bat) dosyası ile: kapanmayı bekler, eskiyi yedeğe alır,
-    yeniyi taşır, programı yeniden başlatır.
+    Toplu iÅŸ (bat) dosyasÄ± ile: kapanmayÄ± bekler, eskiyi yedeÄŸe alÄ±r,
+    yeniyi taÅŸÄ±r, programÄ± yeniden baÅŸlatÄ±r.
     """
     mevcut = os.path.abspath(sys.executable if getattr(sys, "frozen", False)
                              else __file__)
     if not getattr(sys, "frozen", False):
-        raise RuntimeError("Kaynak koddan çalışırken güncelleme uygulanmaz.")
+        raise RuntimeError("Kaynak koddan Ã§alÄ±ÅŸÄ±rken gÃ¼ncelleme uygulanmaz.")
     if any(c in mevcut + yeni_dosya for c in '"%^&|<>!'):
-        raise RuntimeError("Program yolunda güncellemeyi engelleyen karakter var.")
+        raise RuntimeError("Program yolunda gÃ¼ncellemeyi engelleyen karakter var.")
     bat_yolu = os.path.join(os.environ.get("TEMP", os.path.expanduser("~")),
                             "hacilar_guncelle.bat")
     icerik = f"""@echo off
@@ -236,5 +236,5 @@ del "%~f0"
 
 
 def sifirla():
-    """(Bilgi) bayi aracı: yayın yapılan depoda yeni release oluşturur."""
-    raise NotImplementedError("Bu iş GuncellemeYayinla.exe'ye aittir.")
+    """(Bilgi) bayi aracÄ±: yayÄ±n yapÄ±lan depoda yeni release oluÅŸturur."""
+    raise NotImplementedError("Bu iÅŸ GuncellemeYayinla.exe'ye aittir.")
