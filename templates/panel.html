@@ -1,9 +1,91 @@
 {% extends "base.html" %}
-{% block sayfa_basligi %}Panel — {{ dukkan }}{% endblock %}
-{% block baslik %}Panel{% endblock %}
-{% block ust %}Genel durum · {{ bugun_tarih | tarih }}{% endblock %}
+{% block sayfa_basligi %}Anasayfa — {{ dukkan }}{% endblock %}
+{% block baslik %}Anasayfa{% endblock %}
+{% block ust %} genel durum · {{ bugun_tarih | tarih }}{% endblock %}
 
 {% block icerik %}
+
+{# ================================================== Extra anasayfa kopyası #}
+<div class="ana-merkez">
+  <div class="ana-marka">HACILAR KUYUMCULUK</div>
+  <div class="ana-marka-ince">Veresiye Takip Programı · Yetkili: Mehmet Avkıran</div>
+</div>
+
+<div class="ana-yerlesim">
+
+  {# ------------------------------------------------------- sol: hızlı menü #}
+  <div class="solum">
+    <div class="kart">
+      <div class="kart-baslik"><h2>Hızlı Menü</h2></div>
+      <div class="kart-govde sifir hizli-menu">
+        <a href="{{ url_for('views.musteriler_sayfasi') }}#yeni"><b>→</b> Müşteri Tanımla</a>
+        <a href="{{ url_for('views.musteriler_sayfasi') }}"><b>→</b> Müşteri Listesi</a>
+        <a href="{{ url_for('views.satislar_sayfasi') }}"><b>→</b> Veresiye Satışı</a>
+        <a href="{{ url_for('views.tahsilatlar_sayfasi') }}"><b>→</b> Tahsilat Al</a>
+        <a href="{{ url_for('views.kasa_sayfasi') }}"><b>→</b> Kasa Hareket</a>
+        <a href="{{ url_for('views.cekler_sayfasi') }}"><b>→</b> Çek &amp; Senet</a>
+        <a href="{{ url_for('views.urunler_sayfasi') }}"><b>→</b> Ürün Tanımla</a>
+        <a href="{{ url_for('views.raporlar') }}"><b>→</b> Raporlar</a>
+      </div>
+    </div>
+  </div>
+
+  {# ------------------------------------------------ center: sık kullanılanlar #}
+  <div class="ortam">
+    <div class="sik-kullanilanlar-baslik">Sık Kullanılanlar</div>
+    <div class="kart">
+      <div class="kart-govde sifir sik-kullanilanlar">
+        <a href="{{ url_for('views.musteriler_sayfasi') }}#yeni"><b>»</b> Müşteri Tanımlama</a>
+        <a href="{{ url_for('views.musteriler_sayfasi') }}"><b>»</b> Müşteri Listesi (Borçlular)</a>
+        <a href="{{ url_for('views.satislar_sayfasi') }}"><b>»</b> Veresiye Hareket</a>
+        <a href="{{ url_for('views.tahsilatlar_sayfasi') }}"><b>»</b> Tahsilat Hareket</a>
+        <a href="{{ url_for('views.kasa_sayfasi') }}"><b>»</b> Kasa Hareket</a>
+        <a href="{{ url_for('views.cekler_sayfasi') }}"><b>»</b> Çek &amp; Senet Defteri</a>
+        <a href="{{ url_for('views.tedarikciler_sayfasi') }}"><b>»</b> Tedarikçi Defteri</a>
+        <a href="{{ url_for('views.musteriler_sayfasi') }}"><b>»</b> Hesap Ekstresi (müşteri kartından)</a>
+        <a href="{{ url_for('views.raporlar') }}"><b>»</b> Özet Rapor</a>
+        <a href="{{ url_for('views.yedek_sayfasi') }}"><b>»</b> Yedekle</a>
+      </div>
+    </div>
+  </div>
+
+  {# ------------------------------------------------------ sağ: simge butonlar #}
+  <div class="sid">
+    <a class="simge-buton" href="{{ url_for('views.raporlar') }}">
+      <span class="s-ic" style="background:#e3eefb;color:var(--mavi-koyu)">▦</span>
+      Özet Rapor
+    </a>
+    <a class="simge-buton" href="{{ url_for('views.yedek_sayfasi') }}">
+      <span class="s-ic" style="background:#fdf3df;color:var(--uyari)">⛃</span>
+      Yedekle
+    </a>
+    <a class="simge-buton" href="{{ url_for('views.islem_gecmisi') }}">
+      <span class="s-ic" style="background:#efe7fb;color:var(--mor)">≡</span>
+      İşlem Geçmişi
+    </a>
+    <a class="simge-buton" href="{{ url_for('views.kasa_sayfasi') }}">
+      <span class="s-ic" style="background:#e4f5ea;color:var(--ok)">▤</span>
+      Kasa
+    </a>
+    <a class="simge-buton" href="{{ url_for('views.ayarlar') }}">
+      <span class="s-ic" style="background:#f1f3f5;color:var(--soluk)">⚙</span>
+      Ayarlar
+    </a>
+  </div>
+</div>
+
+{# ------------------------------------------------------- hızlı giriş butonlar #}
+<div class="hizli-giris-butonlari">
+  <a class="buton altin" href="{{ url_for('views.musteriler_sayfasi') }}#yeni">
+    <svg class="ic"><use href="#i-ekle"/></svg> Yeni Müşteri
+  </a>
+  <a class="buton" href="{{ url_for('views.satislar_sayfasi') }}">
+    <svg class="ic"><use href="#i-bag"/></svg> Veresiye Satışı
+  </a>
+  <a class="buton yesil" href="{{ url_for('views.tahsilatlar_sayfasi') }}">
+    <svg class="ic"><use href="#i-kart"/></svg> Tahsilat Al
+  </a>
+</div>
 
 {# ------------------------------------------------------------ hızlı fiyat #}
 <details class="acilir" {% if request.args.get('fiyat') == '1' %}open{% endif %}>
@@ -28,7 +110,7 @@
   </div>
 </details>
 
-{# ---------------------------------------------------------------- KPI'lar #}
+{# ---------------------------------------------------------------- ÖZET ==== #}
 <div class="kpi-izgara">
   <div class="kart kpi">
     <div class="ust">
@@ -131,7 +213,7 @@
         </a>
       </div>
     </div>
-    <div class="kart-govde sirifiz">
+    <div class="kart-govde sifir">
       {% if v.gecikmis %}
       <div class="tablo-kaydir">
         <table class="tablo">
@@ -181,7 +263,7 @@
         <a class="buton kucuk sade" href="{{ url_for('views.islem_gecmisi') }}">Geçmiş →</a>
       </div>
     </div>
-    <div class="kart-govde sirifiz">
+    <div class="kart-govde sifir">
       <div class="zaman-cizgisi">
         {% for h in v.son_hareketler %}
         <div class="zaman-satir">
@@ -221,7 +303,7 @@
       <span class="rozet uyari">{{ v.odeme_sozleri | length }} söz</span>
     </div>
   </div>
-  <div class="kart-govde sirifiz">
+  <div class="kart-govde sifir">
     {% if v.odeme_sozleri %}
     <div class="tablo-kaydir">
       <table class="tablo">
@@ -260,22 +342,8 @@
   </div>
 </div>
 
-{# ------------------------------------------------------------ hızlı giriş #}
+{# ------------------------------------------------------------ hızlı bilgi #}
 <div class="izgara-3" style="margin-top:16px">
-  <div class="kart">
-    <div class="kart-govde" style="display:flex;gap:12px;flex-wrap:wrap">
-      <a class="buton altin" href="{{ url_for('views.musteriler_sayfasi') }}#yeni">
-        <svg class="ic"><use href="#i-ekle"/></svg> Yeni Müşteri
-      </a>
-      <a class="buton" href="{{ url_for('views.satislar_sayfasi') }}">
-        <svg class="ic"><use href="#i-bag"/></svg> Veresiye Satışı
-      </a>
-      <a class="buton yesil" href="{{ url_for('views.tahsilatlar_sayfasi') }}">
-        <svg class="ic"><use href="#i-kart"/></svg> Tahsilat Al
-      </a>
-    </div>
-  </div>
-
   <div class="kart">
     <div class="kart-govde">
       <div class="bilgi-satiri"><span>Bu ay satış</span>

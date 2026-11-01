@@ -785,3 +785,95 @@ main .buton, .kart .buton, .filtre .buton { border-radius: 3px; }
 @media (max-width: 720px) {
   .menu-cubugu { font-size: 13px; padding: 3px 8px; }
 }
+
+/* ==========================================================================
+   EXTRA ANASAYFA — büyük şirket adı + sık kullanılanlar + simge sütunu
+   ========================================================================== */
+.ana-merkez { text-align: center; padding: 8px 0 14px; }
+.ana-marka {
+  color: var(--mavi-koyu);
+  font-size: 34px; font-weight: 800; letter-spacing: .14em;
+  text-shadow: 0 1px 0 #ffffff;
+}
+.ana-marka-ince { color: var(--soluk); font-size: 12.5px; margin-top: 2px; }
+
+.ana-yerlesim {
+  display: grid; gap: 14px;
+  grid-template-columns: 216px 1fr 138px;
+  align-items: start;
+  margin-bottom: 14px;
+}
+.ana-yerlesim .solum { min-width: 0; }
+.ana-yerlesim .ortam { min-width: 0; }
+.ana-yerlesim .sid {
+  display: flex; flex-direction: column; gap: 8px;
+  position: sticky; top: 110px;
+}
+
+/* sol hızlı menü — Extra buton satırları */
+.hizli-menu a {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; min-height: 44px;
+  border: 1px solid var(--cizgi);
+  border-top: none;
+  background: linear-gradient(180deg, #ffffff, #f2f7fb);
+  color: #1c2b3a; font-weight: 600; font-size: 13.5px;
+  text-decoration: none !important;
+}
+.hizli-menu a:first-child { border-top: 1px solid var(--cizgi); }
+.hizli-menu a b { color: var(--mavi); font-weight: 700; }
+.hizli-menu a:hover { background: var(--secili); color: var(--mavi-koyu); }
+
+/* merkez "Sık Kullanılanlar" */
+.sik-kullanilanlar-baslik {
+  text-align: center; color: var(--mavi-koyu);
+  font-size: 16px; font-weight: 700; margin-bottom: 8px;
+}
+.sik-kullanilanlar a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 18px; min-height: 42px;
+  border-bottom: 1px solid #e3ecf4;
+  color: #1c2b3a; font-weight: 600; font-size: 14px;
+  text-decoration: none !important;
+}
+.sik-kullanilanlar a:last-child { border-bottom: none; }
+.sik-kullanilanlar a b { color: var(--mavi); font-weight: 700; }
+.sik-kullanilanlar a:hover { background: var(--secili); color: var(--mavi-koyu); }
+
+/* sağ simge butonlar (Ajanda/Notlar... tarzı) */
+.simge-buton {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: linear-gradient(180deg, #ffffff, #eef4fa);
+  border: 1px solid var(--cizgi-2); border-radius: 4px;
+  padding: 10px 6px;
+  color: #1c2b3a; font-size: 12px; font-weight: 700;
+  text-decoration: none !important;
+  box-shadow: 0 1px 2px rgba(28,60,95,.10);
+}
+.simge-buton:hover { border-color: var(--mavi); background: var(--secili); }
+.simge-buton .s-ic {
+  width: 40px; height: 40px; border-radius: 7px;
+  display: grid; place-items: center;
+  font-size: 19px; font-weight: 800;
+  border: 1px solid var(--cizgi);
+}
+
+.hizli-giris-butonlari {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 1080px) {
+  .ana-yerlesim { grid-template-columns: 190px 1fr 128px; }
+  .ana-marka { font-size: 27px; }
+}
+
+@media (max-width: 900px) {
+  .ana-yerlesim { grid-template-columns: 1fr; }
+  .ana-yerlesim .sid {
+    position: static;
+    flex-direction: row; flex-wrap: wrap;
+  }
+  .simge-buton { width: 104px; }
+  .ana-marka { font-size: 22px; }
+}
