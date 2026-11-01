@@ -247,7 +247,7 @@ class Uygulama:
         st.configure("TNotebook.Tab", background=PANEL, foreground=SOLUK,
                      padding=[18, 10], borderwidth=0, font=("Segoe UI", 10))
         st.map("TNotebook.Tab", background=[("selected", PANEL2)],
-               foreground=[("selected", ALTIN)])
+               foreground=[("selected", ALTIN_ACIK)])
         st.configure("TLabel", background=ARKA, foreground=METIN)
         st.configure("Panel.TLabel", background=PANEL, foreground=METIN)
         st.configure("Soluk.TLabel", background=ARKA, foreground=SOLUK)
@@ -278,9 +278,10 @@ class Uygulama:
         st.map("TCheckbutton", background=[("active", ARKA)])
         st.configure("Treeview", background=PANEL, fieldbackground=PANEL,
                      foreground=METIN, rowheight=30, borderwidth=0)
-        st.configure("Treeview.Heading", background=PANEL2, foreground=SOLUK,
-                     font=("Segoe UI", 9, "bold"), borderwidth=0, padding=[10, 7])
-        st.map("Treeview.Heading", background=[("active", "#dbe9f8")])
+        st.configure("Treeview.Heading", background="#3a6ea9", foreground="#ffffff",
+                     font=("Segoe UI", 9, "bold"), borderwidth=1, padding=[10, 7])
+        st.map("Treeview.Heading", background=[("active", "#5285c2"),
+                                               ("pressed", "#2a5a90")])
         st.configure("Vertical.TScrollbar", background=PANEL2, troughcolor=ARKA,
                      borderwidth=0, arrowsize=12)
 
@@ -347,8 +348,8 @@ class Uygulama:
         self.tab_panel = ttk.Frame(self.notlar_ck, padding=10)
         self.tab_yedek = ttk.Frame(self.notlar_ck, padding=10)
 
-        self.notlar_ck.add(self.tab_panel, text="  🏠 Borçlar  ")
-        self.notlar_ck.add(self.tab_yedek, text="  💾 Yedek  ")
+        self.notlar_ck.add(self.tab_panel, text="  Borçlar (Anasayfa)  ")
+        self.notlar_ck.add(self.tab_yedek, text="  Yedek & Güvenlik  ")
 
         self.notlar_ck.bind("<<NotebookTabChanged>>", self._sekme_degisti)
         self._panel_kur()
@@ -399,10 +400,13 @@ class Uygulama:
                            bg=ARKA, fg=SOLUK, font=("Segoe UI", 9))
         baslik2.pack(anchor="center", pady=(0, 6))
 
-        # --- buyuk arama alani: isim yaz -> borcu gor --------------------- #
-        ara = ttk.Frame(self.tab_panel)
-        ara.pack(fill="x")
-        ttk.Label(ara, text="🔎", font=("Segoe UI", 15)).pack(side="left")
+        gr_ara = tk.LabelFrame(self.tab_panel, text="  🔎 Müşteri Bul  ",
+                               bg=PANEL, fg=ALTIN_ACIK, borderwidth=1,
+                               font=("Segoe UI", 9, "bold"))
+        gr_ara.pack(fill="x", pady=(0, 6))
+        ara = ttk.Frame(gr_ara, style="Panel.TFrame")
+        ara.pack(fill="x", padx=10, pady=7)
+        tk.Label(ara, text="🔎", font=("Segoe UI", 13), bg=PANEL).pack(side="left")
         self.m_ara = tk.StringVar()
         girdi = ttk.Entry(ara, textvariable=self.m_ara, font=("Segoe UI", 13), width=32)
         girdi.pack(side="left", padx=8, ipady=6)
@@ -414,43 +418,64 @@ class Uygulama:
         cb.pack(side="left", padx=12)
         ipucu(cb, "İşareti kaldırırsanız borcu olmayanlar\ndahil tüm müşteriler listelenir.")
 
-        # --- islem dugmeleri ---------------------------------------------- #
-        dugme = ttk.Frame(self.tab_panel)
+        # --- islem tuslari (kutu tuslar) ----------------------------------- #
+        dugme = tk.Frame(self.tab_panel, bg=ARKA)
         dugme.pack(fill="x", pady=8)
-        for yazi, komut, stil, aciklama in (
-            ("+ Yeni Müşteri", self.musteri_dlg_yeni, "Altin.TButton",
-             "Yeni müşteri kartı açar: ad, telefon,\nkredi limiti, ödeme sözü, not."),
-            ("💰 Borç Ekle", lambda: self._m_semma(self.satis_dlg), None,
+        for yazi, komut, aciklama in (
+            ("Yeni\nMüşteri", self.musteri_dlg_yeni,
+             "Yeni müşteri kartı açar:\nad, telefon, kredi limiti, not."),
+            ("Borç\nEkle", lambda: self._m_semma(self.satis_dlg),
              "Seçili müşteriye veresiye borç işler\n(tarih, tutar, vade)."),
-            ("✅ Tahsilat Al", lambda: self._m_semma(self.tahsilat_dlg), "Yesil.TButton",
-             "Seçili müşteriden ödeme alır;\nborç en eski satıştan başlayarak kapanır."),
-            ("✎ Düzenle", lambda: self._m_semma(self.musteri_dlg_duzenle), None,
+            ("Tahsilat\nAl", lambda: self._m_semma(self.tahsilat_dlg),
+             "Ödeme alır; borç eski satıştan\nitibaren kapanır."),
+            ("Düzenle", lambda: self._m_semma(self.musteri_dlg_duzenle),
              "Seçili müşterinin bilgilerini günceller."),
-            ("📄 Ekstre", lambda: self._m_semma(self.ekstre_penceresi), None,
-             "Seçili müşterinin hesap dökümünü açar\n(TXT veya Excel olarak kaydedilir)."),
-            ("📱 WhatsApp", lambda: self._m_semma(self.whatsapp_dlg), None,
-             "Borç hatırlatma mesajı üretir;\nWhatsApp\'ta açar veya panoya kopyalar."),
-            ("📊 Excel\'e Aktar", self.musterileri_excel_aktar, None,
-             "Borçlu listesini toplamlarıyla birlikte\nExcel (.xlsx) olarak kaydeder."),
-            ("Arşivle / Geri Al", self.musteri_durum_degistir, None,
-             "Seçili müşteriyi arşive kaldırır (silinmez)\nveya listeye geri alır."),
+            ("Ekstre", lambda: self._m_semma(self.ekstre_penceresi),
+             "Seçili müşterinin hesap dökümünü açar\n(TXT/Excel kaydedilir)."),
+            ("WhatsApp", lambda: self._m_semma(self.whatsapp_dlg),
+             "Borç hatırlatma mesajı üretir."),
+            ("Excel'e\nAktar", self.musterileri_excel_aktar,
+             "Borçlu listesini Excel'e kaydeder."),
+            ("Arşiv /\nGeri Al", self.musteri_durum_degistir,
+             "Arşive kaldırır (silinmez) veya\nlisteye geri alır."),
         ):
-            btn = ttk.Button(dugme, text=yazi, style=stil or "TButton", command=komut)
-            btn.pack(side="left", padx=(0, 7))
+            btn = tk.Button(dugme, text=yazi, command=komut,
+                            width=11, height=3,
+                            bg="#ffffff", fg=METIN,
+                            activebackground="#cfe4f7",
+                            activeforeground=ALTIN_ACIK,
+                            borderwidth=1, relief="solid",
+                            font=("Segoe UI", 9, "bold"),
+                            cursor="hand2", justify="center")
+            btn.pack(side="left", padx=(0, 6))
             ipucu(btn, aciklama)
 
-        # --- en altta toplam cubugu (her zaman gorunur) -------------------- #
-        self.toplam_cubugu = ttk.Frame(self.tab_panel, style="Panel.TFrame",
-                                       padding=(16, 12))
+                # --- en altta toplam kutular ---------------------------------------- #
+        self.toplam_cubugu = tk.Frame(self.tab_panel, bg=ARKA)
         self.toplam_cubugu.pack(side="bottom", fill="x", pady=(8, 0))
-        self.toplam_etiket = ttk.Label(self.toplam_cubugu, text="—",
-                                       style="KpiDeger.TLabel")
-        self.toplam_etiket.pack(side="left")
-        ipucu(self.toplam_etiket, "Listedeki borçların toplamı:\nTL borç + altın borcun "
-                                  "güncel gram\nfiyatındaki değeri.")
-        self.sayi_etiket = ttk.Label(self.toplam_cubugu, text="", style="Soluk.TLabel",
-                                     background=PANEL)
-        self.sayi_etiket.pack(side="right")
+        self.sayi_etiket = tk.Label(self.toplam_cubugu, text="",
+                                    bg=ARKA, fg=SOLUK, font=("Segoe UI", 9))
+        self.sayi_etiket.pack(side="left")
+
+        def _kutu(label, genis=18):
+            kapsa = tk.Frame(self.toplam_cubugu, bg="#ffffff",
+                             highlightthickness=1, highlightbackground=CIZGI)
+            kapsa.pack(side="right", padx=(6, 0), ipadx=10, ipady=3)
+            tk.Label(kapsa, text=label, bg="#ffffff", fg=SOLUK,
+                     font=("Segoe UI", 7, "bold")).pack()
+            deger = tk.Label(kapsa, text="—", bg="#ffffff", fg=ALTIN_ACIK,
+                             font=("Segoe UI", 12, "bold"), width=genis,
+                             anchor="e", justify="right")
+            deger.pack()
+            return deger
+
+        tk.Label(self.toplam_cubugu, text="=", bg=ARKA, fg=SOLUK,
+                 font=("Segoe UI", 13, "bold")).pack(side="right")
+        self._top_deg = _kutu("Toplam Bakiye (TL değeri)")
+        tk.Label(self.toplam_cubugu, text="+", bg=ARKA, fg=SOLUK,
+                 font=("Segoe UI", 13, "bold")).pack(side="right")
+        self._top_gr = _kutu("Toplam Altın (gram)")
+        self._top_tl = _kutu("Toplam Borç (TL)")
 
         # --- borc listesi --------------------------------------------------- #
         self.borc_agac = self._agac(self.tab_panel,
@@ -501,9 +526,9 @@ class Uygulama:
                                         + float(m["altin_borc"]) * kur),
                 "—", ""))
         self.fiyat_etiketi.configure(text=f"Güncel gram fiyatı: {tl(kur)}")
-        self.toplam_etiket.configure(
-            text=f"TOPLAM ALACAK:    {tl(toplam_tl)}  +  {gr(toplam_gr)}"
-                 f"    =    {tl(toplam_deger)}")
+        self._top_tl.configure(text=tl(toplam_tl))
+        self._top_gr.configure(text=gr(toplam_gr))
+        self._top_deg.configure(text=tl(toplam_deger))
         self.sayi_etiket.configure(
             text=f"{borclu_sayi} borçlu / {len(aktif)} müşteri listeleniyor")
 
