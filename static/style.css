@@ -696,3 +696,92 @@ main .buton.sade:hover { color: var(--mavi-koyu); }
 @media (max-width: 720px) {
   .durum-bari .orta { display: none; }
 }
+
+/* ==========================================================================
+   EXTRA SHELL — üst menü şeridi + oklu hızlı menü + groupbox kartlar
+   ========================================================================== */
+
+/* menü şeridi (KitchenExtra'daki adres satırı altındaki menü) */
+.menu-cubugu {
+  background: #ffffff;
+  border-bottom: 1px solid var(--cizgi-2);
+  padding: 3px 14px;
+  display: flex; align-items: center; gap: 2px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+  font-size: 13.5px; font-weight: 600;
+}
+.menu-cubugu a {
+  padding: 6px 10px; border-radius: 3px;
+  color: #1c2b3a; text-decoration: none;
+  border: 1px solid transparent;
+  min-height: 30px; display: inline-flex; align-items: center;
+}
+.menu-cubugu a:hover { background: var(--panel-2); color: var(--mavi-koyu);
+                       text-decoration: underline; }
+.menu-cubugu a.aktif {
+  background: var(--secili); border-color: var(--cizgi-2);
+  color: var(--mavi-koyu);
+}
+
+/* sol menü: Extra'da "Hızlı Menü" oklu butonları */
+.sidebar { background: #ffffff; }
+.nav a::before {
+  content: "→";
+  color: var(--mavi); font-weight: 700; font-size: 15px;
+  margin-right: 2px;
+  flex: none;
+}
+.nav a.aktif::before { color: var(--mavi); }
+.nav .baslik {
+  color: #33465a; font-weight: 800; font-size: 11px; letter-spacing: .06em;
+  padding: 10px 10px 4px;
+  border-bottom: 1px dashed var(--cizgi);
+  margin-bottom: 4px;
+}
+.nav a { border-radius: 3px; }
+.nav a.aktif { background: var(--secili); }
+
+/* kartlar = Windows GroupBox (sade çerçeve) */
+.kart { border-radius: 3px; border-color: #9db4c8; }
+.kpi { border: none; box-shadow: none; background: #ffffff; }
+
+/* form sarmalama kutuları — gri grup başlığı */
+details.acilir > summary {
+  background: linear-gradient(180deg, #f4f8fb 0%, #e6eef6 100%);
+  color: var(--mavi-koyu);
+  border-bottom: 1px solid var(--cizgi);
+  min-height: 42px;
+  font-size: 14px;
+}
+details.acilir > summary::after {
+  content: none;                     /* rozet kaldırıldı — sade */
+}
+
+/* durum çubuğu — Extra en altta iki satırlı bilgi bandı */
+.durum-bari {
+  display: block;
+  background: #d8e2ec;
+  border-top: 1px solid var(--cizgi-2);
+  padding: 4px 12px 4px;
+  padding-bottom: calc(4px + env(safe-area-inset-bottom));
+  font-size: 12.5px; color: var(--yazi);
+}
+.durum-bari .durum-satir { display: flex; gap: 12px; flex-wrap: wrap; }
+.durum-bari .durum-satir .sag { margin-left: auto; }
+.durum-bari b { font-weight: 700; }
+.durum-bari .durum-satirorta {
+  text-align: center; margin-top: 2px; color: var(--soluk); font-size: 12px;
+}
+.durum-bari .durum-satirorta::first-letter { text-transform: uppercase; }
+
+/* butonlar — köşeler Extra gibi tam kareye yakın */
+main .buton, .kart .buton, .filtre .buton { border-radius: 3px; }
+
+/* üst şerit: Extra pencere başlığı hissi (kısa) */
+.cubuk { padding: 7px 16px; }
+.cubuk h1 { font-size: 15px; }
+
+@media (max-width: 720px) {
+  .menu-cubugu { font-size: 13px; padding: 3px 8px; }
+}

@@ -134,6 +134,22 @@
       </div>
     </header>
 
+    {# ============================================================== menü şeridi #}
+    <div class="menu-cubugu">
+      {% set _m = sayfa %}
+      <a href="{{ url_for('views.panel') }}" class="{{ 'aktif' if _m == 'panel' }}">Panel</a>
+      <a href="{{ url_for('views.musteriler_sayfasi') }}" class="{{ 'aktif' if _m == 'musteriler' }}">Müşteri (Cari)</a>
+      <a href="{{ url_for('views.satislar_sayfasi') }}" class="{{ 'aktif' if _m == 'satislar' }}">Veresiye Satışları</a>
+      <a href="{{ url_for('views.tahsilatlar_sayfasi') }}" class="{{ 'aktif' if _m == 'tahsilatlar' }}">Tahsilatlar</a>
+      <a href="{{ url_for('views.kasa_sayfasi') }}" class="{{ 'aktif' if _m == 'kasa' }}">Kasa</a>
+      <a href="{{ url_for('views.cekler_sayfasi') }}" class="{{ 'aktif' if _m == 'cekler' }}">Çek &amp; Senet</a>
+      <a href="{{ url_for('views.tedarikciler_sayfasi') }}" class="{{ 'aktif' if _m == 'tedarikciler' }}">Tedarikçiler</a>
+      <a href="{{ url_for('views.urunler_sayfasi') }}" class="{{ 'aktif' if _m == 'urunler' }}">Ürünler</a>
+      <a href="{{ url_for('views.raporlar') }}" class="{{ 'aktif' if _m in ('raporlar', 'gecmis') }}">Raporlar</a>
+      <a href="{{ url_for('views.yedek_sayfasi') }}" class="{{ 'aktif' if _m == 'yedek' }}">Yedek</a>
+      <a href="{{ url_for('views.ayarlar') }}" class="{{ 'aktif' if _m == 'ayarlar' }}">Ayarlar</a>
+    </div>
+
     <main class="icerik">
       {% if yedek_uyari %}
         <div class="mesajlar">
@@ -165,12 +181,20 @@
 
     {# ---------------------------------------------------- alt durum çubuğu #}
     <footer class="durum-bari">
-      <span><b>Hacılar Kuyumculuk</b> · Yetkili: Mehmet Avkıran</span>
-      <span class="orta">Tablet erişimi: http://{{ lan_ip }}:{{ port }}</span>
-      <span>
-        Günlük yedek:
-        {% if yedek_durum.get('son_gunluk') %}{{ yedek_durum['son_gunluk'] | tarih }}{% else %}bekliyor{% endif %}
-      </span>
+      <div class="durum-satir">
+        <span>
+          <b>Ana Makina:</b> localhost (127.0.0.1) &nbsp;–&nbsp;
+          <b>Şirket:</b> HACILAR KUYUMCULUK &nbsp;–&nbsp;
+          <b>Kullanıcı:</b> MEHMET AVKIRAN
+        </span>
+        <span class="sag">
+          <b>Tablet:</b> http://{{ lan_ip }}:{{ port }} &nbsp;·&nbsp;
+          {{ bugun_tarih | tarih }}
+        </span>
+      </div>
+      <div class="durum-satirorta">
+        - Veriler bu bilgisayarda saklanır · saatlik + günlük + aylık otomatik yedekler açık -
+      </div>
     </footer>
   </div>
 </div>
