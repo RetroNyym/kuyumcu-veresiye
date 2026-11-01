@@ -23,7 +23,7 @@ import subprocess
 import sys
 import urllib.request
 
-SURUM = "1.0.0"                       # bu programın sürümü
+SURUM = "1.2.0"                       # bu programın sürümü
 DEPO = "RetroNyym/hacilar-guncelleme"  # ÖZEL güncelleme deposu
 EXE_ADI = "HacilarKuyumculuk.exe"
 ZAMAN_ASIMI = 8                        # saniye

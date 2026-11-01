@@ -32,19 +32,19 @@ from veresiye import db as vdb          # noqa: E402
 from veresiye import services as sv     # noqa: E402
 
 # --------------------------------------------------------------------------- #
-# Tema: premium koyu (antrasit) + altın vurgular
+# Tema: Extra Yazilim tarzi acik klasik (pencere mavi-gri + mavi vurgu)
 # --------------------------------------------------------------------------- #
-ARKA = "#14161a"        # pencere zemini
-PANEL = "#1c1f24"       # kart zemini
-PANEL2 = "#23262d"      # alan zemini
-CIZGI = "#2d3138"
-ALTIN = "#d4af37"
-ALTIN_ACIK = "#f0d77b"
-METIN = "#e8e6df"
-SOLUK = "#8a8f98"
-YESIL = "#34c37a"
-KIRMIZI = "#e0566a"
-UYARI = "#e0a94a"
+ARKA = "#cfdcea"        # pencere zemini
+PANEL = "#ffffff"       # kart zemini
+PANEL2 = "#e9f1f9"      # alan zemini
+CIZGI = "#b7c9da"
+ALTIN = "#2f6fc1"       # ana vurgu (buton/rozet rengi)
+ALTIN_ACIK = "#1d4f92"
+METIN = "#1c2b3a"
+SOLUK = "#4b5f72"
+YESIL = "#1f7d43"
+KIRMIZI = "#c0392b"
+UYARI = "#b26a00"
 
 
 def tl(v) -> str:
@@ -122,7 +122,7 @@ class Ipucu:
         tw.wm_overrideredirect(True)
         tw.attributes("-topmost", True)
         cerceve = tk.Frame(tw, bg=ALTIN, padx=1, pady=1)   # ince altın çerçeve
-        ic = tk.Label(cerceve, text=self.yazi, bg="#15181d", fg=METIN,
+        ic = tk.Label(cerceve, text=self.yazi, bg="#ffffff", fg=METIN,
                       font=("Segoe UI", 9), justify="left", padx=12, pady=7,
                       wraplength=340)
         ic.pack()
@@ -221,26 +221,26 @@ class Uygulama:
         st.configure("TCombobox", fieldbackground=PANEL2, arrowcolor=ALTIN)
         st.configure("TButton", background=PANEL2, foreground=METIN, padding=[14, 7],
                      borderwidth=1, focusthickness=0)
-        st.map("TButton", background=[("active", "#2b2f36"), ("pressed", "#333945")],
+        st.map("TButton", background=[("active", "#dbe9f8"), ("pressed", "#cfe4f7")],
                foreground=[("disabled", SOLUK)])
-        st.configure("Altin.TButton", background="#3a3325", foreground=ALTIN_ACIK,
+        st.configure("Altin.TButton", background="#dbe9f8", foreground=ALTIN_ACIK,
                      borderwidth=1, padding=[18, 8], font=("Segoe UI", 9, "bold"))
-        st.map("Altin.TButton", background=[("active", "#4a4230"), ("pressed", "#2e2917")])
-        st.configure("Yesil.TButton", background="#1e352a", foreground=YESIL,
+        st.map("Altin.TButton", background=[("active", "#cfe4f7"), ("pressed", "#b9d6f0")])
+        st.configure("Yesil.TButton", background="#e4f5ea", foreground=YESIL,
                      padding=[18, 8], font=("Segoe UI", 9, "bold"))
-        st.map("Yesil.TButton", background=[("active", "#274b39"), ("pressed", "#163024")])
+        st.map("Yesil.TButton", background=[("active", "#d1ecd9"), ("pressed", "#c2e4cd")])
         st.configure("TCheckbutton", background=ARKA, foreground=METIN, focuscolor=ARKA)
         st.map("TCheckbutton", background=[("active", ARKA)])
         st.configure("Treeview", background=PANEL, fieldbackground=PANEL,
                      foreground=METIN, rowheight=30, borderwidth=0)
         st.configure("Treeview.Heading", background=PANEL2, foreground=SOLUK,
                      font=("Segoe UI", 9, "bold"), borderwidth=0, padding=[10, 7])
-        st.map("Treeview.Heading", background=[("active", "#2c3038")])
+        st.map("Treeview.Heading", background=[("active", "#dbe9f8")])
         st.configure("Vertical.TScrollbar", background=PANEL2, troughcolor=ARKA,
                      borderwidth=0, arrowsize=12)
 
         self.kok.option_add("*Treeview*selectForeground", ALTIN_ACIK)
-        self.kok.option_add("*Treeview*selectBackground", "#3a3325")
+        self.kok.option_add("*Treeview*selectBackground", "#cfe4f7")
 
     # ------------------------------------------------------------ üst şerit #
     def _ust_serit(self):
@@ -253,7 +253,7 @@ class Uygulama:
         selam_satiri = ttk.Frame(sol, style="Panel.TFrame")
         selam_satiri.pack(anchor="w", pady=(3, 0))
         self.selam_soz_etiketi = tk.Label(selam_satiri, text="", bg=ALTIN,
-                                          fg="#14161a", font=("Segoe UI", 10, "bold"),
+                                          fg="#ffffff", font=("Segoe UI", 10, "bold"),
                                           padx=10, pady=3)
         self.selam_soz_etiketi.pack(side="left")
         self.selam_ad_etiketi = tk.Label(selam_satiri, text="", bg=PANEL, fg=ALTIN,
@@ -335,7 +335,7 @@ class Uygulama:
         agac.tag_configure("pesin", foreground=UYARI)
         agac.tag_configure("ok", foreground=YESIL)
         agac.tag_configure("soluk", foreground=SOLUK)
-        agac.tag_configure("cift", background="#191c21")
+        agac.tag_configure("cift", background="#eef4fa")
         kay = ttk.Scrollbar(sarici, orient="vertical", command=agac.yview)
         agac.configure(yscrollcommand=kay.set)
         agac.pack(side="left", fill="both", expand=True)
@@ -733,7 +733,7 @@ class Uygulama:
 
         metin = tk.Text(penc, bg=PANEL, fg=METIN, insertbackground=METIN,
                         font=("Consolas", 10), borderwidth=0, wrap="none",
-                        selectbackground="#32363d")
+                        selectbackground="#cfe4f7")
         metin.pack(side="top", fill="both", expand=True)
 
         baslik = f"HESAP EKSTRESİ — {m['ad']}"
@@ -1362,7 +1362,7 @@ def guncelleme_penceresi(kok: tk.Tk, bilgi: dict) -> None:
         t.start()
         gosterge_tazele()
 
-    btn = tk.Button(penc, text="⬇ Şimdi Güncelle", bg=ALTIN, fg="#14161a",
+    btn = tk.Button(penc, text="⬇ Şimdi Güncelle", bg=ALTIN, fg="#ffffff",
                     activebackground=ALTIN_ACIK, borderwidth=0, pady=8,
                     font=("Segoe UI", 11, "bold"), command=baslat)
     btn.pack(fill="x", pady=(14, 0))
