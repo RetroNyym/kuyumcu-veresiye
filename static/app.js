@@ -163,6 +163,25 @@
     if (e.target.closest("[data-yazdir]")) window.print();
   });
 
+  /* ---------------------------------------------------- araç çubuğu okları */
+  document.addEventListener("click", function (e) {
+    var git = e.target.closest("[data-git]");
+    if (git) {
+      var hedef = document.querySelector(git.getAttribute("data-git"));
+      if (hedef) {
+        hedef.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (hedef.matches("input[type=search]") || hedef.matches("input")) {
+          hedef.focus();
+        }
+      }
+    }
+    var odak = e.target.closest("[data-ara-odak]");
+    if (odak) {
+      var kutu = document.querySelector(".arama-kutu input");
+      if (kutu) { kutu.focus(); }
+    }
+  });
+
   /* ---------------------------------------------- formlar hep açık beyaslı */
   /* kullanım kolaylığı: kayıt formları sayfada hep görünür
      (listeye kaydırma: ":kayit" hedefine oturulur). */

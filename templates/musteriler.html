@@ -1,26 +1,50 @@
 {% extends "base.html" %}
 {% block sayfa_basligi %}Müşteriler — {{ dukkan }}{% endblock %}
-{% block baslik %}Müşteriler{% endblock %}
+{% block baslik %}Müşteri (Cari){% endblock %}
 {% block ust %}{{ musteriler | length }} kayıt · veriler asla silinmez, arşivlenir{% endblock %}
 
 {% block icerik %}
 
+{# ============================================== araç çubuğu (Windows tarzı) #}
+<div class="arac-cubugu yazdirma-gizle">
+  <button class="arac-tile" type="button" data-git="#yeni">
+    <span class="t-ic" style="background:#e3eefb;color:var(--mavi-koyu)">👤</span>Yeni Kart
+  </button>
+  <button class="arac-tile" type="button" data-git="#musteri-tablosu">
+    <span class="t-ic" style="background:#e4f5ea;color:var(--ok)">☰</span>Listele
+  </button>
+  <button class="arac-tile" type="button" data-ara-odak>
+    <span class="t-ic" style="background:#fdf3df;color:var(--uyari)">🔍</span>Müşteri Bul
+  </button>
+  <button class="arac-tile" type="button" data-yazdir>
+    <span class="t-ic" style="background:#dbe9f8;color:var(--mavi-koyu)">🖨</span>Yazdır
+  </button>
+  <a class="arac-tile" href="{{ url_for('views.panel') }}">
+    <span class="t-ic" style="background:#f1f3f5;color:var(--soluk)">⌂</span>Anasayfa
+  </a>
+</div>
+
+{# =========================================== CARI KART TANIMLAMA (form) === #}
 <details class="acilir" id="yeni" {% if not musteriler %}open{% endif %}>
-  <summary><svg class="ic"><use href="#i-ekle"/></svg> Yeni Müşteri Ekle</summary>
+  <summary><svg class="ic"><use href="#i-ekle"/></svg> CARI KART TANIMLAMA — yeni müşteri / firma</summary>
   <div class="acilir-icerik">
     <form method="post" action="{{ url_for('views.musteri_ekle') }}">
-      <input type="hidden" name="geri" value="{{ url_for('views.musteriler_sayfasi') }}">
+      <input type="hidden" name="geri" value="{{ url_for('views.musteriler_sayfasi') }}#yeni">
       <div class="form-izgara">
         <div class="alan">
-          <label>Ad Soyad / Ünvan *</label>
+          <label>Cari Kodu</label>
+          <input disabled value="otomatik (CK0001...)" style="color:var(--soluk-2)">
+        </div>
+        <div class="alan">
+          <label>Adı Soyadı / Ünvan *</label>
           <input name="ad" placeholder="örn. Ayşe Yılmaz" required autofocus>
         </div>
         <div class="alan">
-          <label>Telefon</label>
+          <label>1. Telefon</label>
           <input name="telefon" inputmode="tel" placeholder="05xx xxx xx xx">
         </div>
         <div class="alan">
-          <label>Kredi Limiti (TL) <span class="ipucu">0 = limitsiz</span></label>
+          <label>Açık Hesap Limiti (V.No yerine) <span class="ipucu">0 = limitsiz</span></label>
           <input name="limit" inputmode="decimal" placeholder="örn. 50.000">
         </div>
         <div class="alan">
@@ -32,8 +56,8 @@
           <input name="adres" placeholder="Mahalle / cadde no…">
         </div>
         <div class="alan genis">
-          <label>Not</label>
-          <textarea name="notlar" placeholder="Kefil, teminat, özel not…"></textarea>
+          <label>Not <span class="ipucu">(kefil, teminat, özel not…)</span></label>
+          <textarea name="notlar" rows="2"></textarea>
         </div>
       </div>
       <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
@@ -41,18 +65,25 @@
           <svg class="ic"><use href="#i-tik"/></svg> Kaydet
         </button>
         <label class="hatirla" style="margin-left:6px">
-          <input type="checkbox" name="detay" value="1"> Kaydettikten sonra detay sayfasını aç
+          <input type="checkbox" name="detay" value="1"> Kaydettikten sonra hareket ekranını aç
         </label>
       </div>
     </form>
   </div>
 </details>
 
+{# =========================================== CARI KART LİSTESİ ================= #}
 <div class="kart">
+  <div class="kart-baslik">
+    <h2>CARI KART LİSTESİ</h2>
+    <div class="sag">
+      <span class="rozet nobet">{{ musteriler | length }} kart</span>
+    </div>
+  </div>
   <div class="filtre yazdirma-gizle">
     <div class="arama-kutu">
       <svg class="ic"><use href="#i-ara"/></svg>
-      <input type="search" data-ara="#musteri-tablosu" placeholder="İsim, telefon ara…">
+      <input type="search" data-ara="#musteri-tablosu" id="carı-ara" placeholder="İsim, telefon ara…">
     </div>
     <div class="anahtar-kutu">
       <a href="{{ url_for('views.musteriler_sayfasi', q=q) }}"
@@ -68,24 +99,26 @@
     </div>
   </div>
 
-  <div class="kart-govde sirifiz">
+  <div class="kart-govde sifir">
     {% if musteriler %}
     <div class="tablo-kaydir">
       <table class="tablo" id="musteri-tablosu">
         <thead>
           <tr>
-            <th>Müşteri</th>
+            <th>Cari Kodu</th>
+            <th>Adı Soyadı / Ünvan</th>
             <th>Telefon</th>
             <th class="sag">TL Borç</th>
             <th class="sag">Altın Borç</th>
-            <th class="sag">TL Eşdeğeri</th>
+            <th class="sag">Bakiye (TL Eşdeğeri)</th>
             <th>Vade Durumu</th>
-            <th></th>
+            <th class="yazdirma-gizle"></th>
           </tr>
         </thead>
         <tbody>
           {% for m in musteriler %}
           <tr data-ara-metin="{{ m.ad }} {{ m.telefon }}" class="{{ 'gecikmis' if m.gecikme_gun > 0 }}">
+            <td class="ince"><b>CK{{ '%04d' % m.id }}</b></td>
             <td>
               <a class="ad" href="{{ url_for('views.musteri_detay', mid=m.id) }}">{{ m.ad }}</a>
               {% if m.kategori %}<span class="rozet nobet">{{ m.kategori }}</span>{% endif %}
@@ -117,13 +150,22 @@
                 <span class="rozet ok">borcu yok</span>
               {% endif %}
             </td>
-            <td class="sag">
+            <td class="sag yazdirma-gizle">
               <a class="buton kucuk" href="{{ url_for('views.musteri_detay', mid=m.id) }}">Detay →</a>
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
+    </div>
+
+    {# toplam kutuları #}
+    {% set b_tl = musteriler | map(attribute='tl_borc') | sum %}
+    {% set b_gr = musteriler | map(attribute='altin_borc') | sum %}
+    <div class="toplam-satir">
+      <div class="toplam-kutu"><span>Toplam TL Borç</span><b>{{ b_tl | tl }}</b></div>
+      <div class="toplam-kutu"><span>Toplam Altın Borç</span><b>{{ b_gr | gr }}</b></div>
+      <div class="toplam-kutu"><span>Toplam Bakiye (eşdeğeri)</span><b>{{ (b_tl + b_gr * gram_simdi) | tl }}</b></div>
     </div>
     {% else %}
     <div class="bos">
@@ -134,6 +176,13 @@
     </div>
     {% endif %}
   </div>
+</div>
+
+{# ------------------------------------------------------- alt durum satırı #}
+<div class="kayit-durum">
+  Toplam Kayıt: <b>{{ musteriler | length }}</b>
+  · Şirket: <b>HACILAR KUYUMCULUK</b>
+  · Kullanıcı: <b>MEHMET AVKIRAN</b>
 </div>
 
 {% endblock %}

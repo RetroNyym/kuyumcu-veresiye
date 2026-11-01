@@ -12,6 +12,28 @@
 
 {% block icerik %}
 
+{# ============================================== araç çubuğu (Extra tarzı) #}
+<div class="arac-cubugu yazdirma-gizle">
+  <a class="arac-tile" href="{{ url_for('views.musteriler_sayfasi') }}">
+    <span class="t-ic" style="background:#f1f3f5;color:var(--soluk)">←</span>Kart Listesi
+  </a>
+  <a class="arac-tile" href="#yeni-satis">
+    <span class="t-ic" style="background:#fdeee9;color:var(--hata)">+</span>Yeni Satış
+  </a>
+  <a class="arac-tile" href="#tahsilat">
+    <span class="t-ic" style="background:#e4f5ea;color:var(--ok)">₺</span>Tahsilat
+  </a>
+  <a class="arac-tile" href="{{ url_for('views.ekstre', mid=m.id) }}">
+    <span class="t-ic" style="background:#e3eefb;color:var(--mavi-koyu)">▤</span>Ekstre
+  </a>
+  <button class="arac-tile" type="button" data-yazdir>
+    <span class="t-ic" style="background:#fdf3df;color:var(--uyari)">🖨</span>Yazdır
+  </button>
+  <a class="arac-tile" href="{{ url_for('views.musteriler_sayfasi') }}">
+    <span class="t-ic" style="background:#fbe9e6;color:var(--hata)">✖</span>Kapat
+  </a>
+</div>
+
 {% if m.gecikme_gun > 0 %}
 <div class="uyari-band">
   <svg class="ic"><use href="#i-uyari"/></svg>
@@ -71,6 +93,23 @@
 </div>
 {% endif %}
 
+{# ------------------------------------------------------------ cari kartı #}
+<div class="kart" style="margin-bottom:16px">
+  <div class="kart-baslik"><h2>CARI KART</h2></div>
+  <div class="kart-govde sifir">
+    <div class="cari-bilgi">
+      <div><span>Cari Kodu</span><b>CK{{ '%04d' % m.id }}</b></div>
+      <div><span>Adı Soyadı / Ünvan</span><b>{{ m.ad }}</b></div>
+      <div><span>1. Telefon</span><b>{{ m.telefon or '—' }}</b></div>
+      <div><span>Kategori</span><b>{{ m.kategori or '—' }}</b></div>
+      <div><span>Adres</span><b>{{ m.adres or '—' }}</b></div>
+      <div><span>Açık Hesap Limiti</span><b>{% if m.limit_tl > 0 %}{{ m.limit_tl | tl }}{% else %}Limitsiz{% endif %}</b></div>
+      <div><span>Kayıt Tarihi</span><b>{{ m.olusturma | tarih }}</b></div>
+      <div><span>Not</span><b>{{ (m.notlar or '—')[:40] }}</b></div>
+    </div>
+  </div>
+</div>
+
 {# ------------------------------------------------------------- bakiyeler #}
 <div class="bakiye-kutulari" style="margin-bottom:16px">
   <div class="bakiye {{ 'tl' if m.tl_borc > 0.004 else 'avans' }}">
@@ -107,7 +146,7 @@
 
 {# -------------------------------------------------------- hızlı işlemler #}
 <div class="izgara-2 yazdirma-gizle">
-  <details class="acilir" {% if request.args.get('satis') == '1' or not m.borclu %}open{% endif %}>
+  <details class="acilir" id="yeni-satis" {% if request.args.get('satis') == '1' or not m.borclu %}open{% endif %}>
     <summary><svg class="ic"><use href="#i-bag"/></svg> Yeni Veresiye Satışı</summary>
     <div class="acilir-icerik">
       <form method="post" action="{{ url_for('views.satis_ekle') }}">
@@ -147,7 +186,7 @@
     </div>
   </details>
 
-  <details class="acilir" {% if request.args.get('tahsilat') == '1' %}open{% endif %}>
+  <details class="acilir" id="tahsilat" {% if request.args.get('tahsilat') == '1' %}open{% endif %}>
     <summary><svg class="ic" style="color:var(--ok)"><use href="#i-kart"/></svg> Tahsilat Al</summary>
     <div class="acilir-icerik">
       <form method="post" action="{{ url_for('views.odeme_ekle') }}" data-cevir-ozet>
@@ -207,11 +246,11 @@
   </details>
 </div>
 
-{# ---------------------------------------------------------------- ekstre #}
+{# ---------------------------------------------------- cari hareket ekranı #}
 <div class="kart">
   <div class="kart-baslik">
     <svg class="ic" style="color:var(--altin-2)"><use href="#i-belge"/></svg>
-    <h2>Hesap Ekstresi</h2>
+    <h2>CARI HAREKET</h2>
     <div class="sag">
       <span class="rozet nobet">{{ e.satirlar | length }} hareket</span>
       <button class="buton kucuk" data-yazdir type="button" style="margin-left:8px">
@@ -293,6 +332,27 @@
     </div>
     {% endif %}
 
+    {% set ymd_borc = e.satirlar | selectattr('para_birimi', 'equalto', 'tl')
+                        | map(attribute='borc') | sum %}
+    {% set ymd_tahsilat = e.satirlar | selectattr('para_birimi', 'equalto', 'tl')
+                            | map(attribute='tahsilat') | sum %}
+    <div class="toplam-satir">
+      <div class="toplam-kutu">
+        <span>Toplam Borç</span>
+        <b>{{ ymd_borc | tl }}</b>
+      </div>
+      <span class="islem">−</span>
+      <div class="toplam-kutu">
+        <span>Toplam Tahsilat</span>
+        <b>{{ ymd_tahsilat | tl }}</b>
+      </div>
+      <span class="islem">=</span>
+      <div class="toplam-kutu">
+        <span>Toplam Bakiye</span>
+        <b>{{ m.tl_borc | tl }}</b>
+      </div>
+    </div>
+
     {% if e.iptaller %}
     <div style="padding:16px 20px;border-top:1px solid var(--cizgi)">
       <div style="font-size:12px;text-transform:uppercase;letter-spacing:.1em;
@@ -364,5 +424,13 @@
     </div>
   </div>
 </details>
+
+{# -------------------------------------------------------- alt durum satırı #}
+<div class="kayit-durum">
+  Toplam Kayıt: <b>{{ e.satirlar | length }}</b>
+  · İptal Kayıt: <b>{{ e.iptaller | length }}</b>
+  · Şirket: <b>HACILAR KUYUMCULUK</b>
+  · Kullanıcı: <b>MEHMET AVKIRAN</b>
+</div>
 
 {% endblock %}
